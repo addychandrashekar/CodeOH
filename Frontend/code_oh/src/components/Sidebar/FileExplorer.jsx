@@ -12,9 +12,10 @@ import {
   MenuItem,
   IconButton
 } from '@chakra-ui/react'
-import { AddIcon, ChevronDownIcon, FileIcon } from '@chakra-ui/icons'
+import { AddIcon, ChevronDownIcon} from '@chakra-ui/icons'
+import { VscFile } from 'react-icons/vsc'
 import { useState } from 'react'
-import { useFiles } from './FileContext'
+import { useFiles } from '../../context/FileContext' 
 
 // Reference the language versions from the existing file
 import { LANGUAGE_VERSIONS } from '../../services/languageVersions'
@@ -81,22 +82,22 @@ export const FileExplorer = () => {
         </HStack>
       )}
 
-      <VStack align="stretch" spacing={2}>
+        <VStack align="stretch" spacing={2}>
         {files.map((file, index) => (
-          <HStack
+            <HStack
             key={index}
             p={2}
             borderRadius="md"
             bg={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
             _hover={{
-              bg: colorMode === 'dark' ? 'gray.600' : 'gray.300'
+                bg: colorMode === 'dark' ? 'gray.600' : 'gray.300'
             }}
-          >
-            <FileIcon />
+            >
+            <VscFile />
             <Text>{file.name}</Text>
-          </HStack>
+            </HStack>
         ))}
-      </VStack>
+        </VStack>
     </VStack>
   )
 }

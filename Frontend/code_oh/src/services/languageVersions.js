@@ -1,30 +1,8 @@
 
 // TODO: Add updated versions for all languages base on piston api
 export const LANGUAGE_VERSIONS = {
-    javascript: "18.15.0",
-    python: "3.10.0",
-    java: "15.0.2",
-    c: "",
-    cpp: "",
-    typescript: "5.0.3",
-    php: "",
-    swift: "",
-    go: "",
-    rust: "",
-    ruby: "",
-    kotlin: "",
-    csharp: "",
-    scala: "",
-    perl: "",
-    r: "",
-    shell: "",
-    sql: "",
-    lua: "",
-    groovy: "",
-    powershell: "",
-    vb: "",
-    objectivec: "",
-    elixir: "",
-    dart: "",
-
+  python: '3.10.0',
+  javascript: 'node-18.15.0',
+  java: '15.0.2',
+  typescript: '5.0.0'
 }

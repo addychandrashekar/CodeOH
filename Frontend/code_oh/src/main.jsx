@@ -4,12 +4,16 @@ import App from './App.jsx'
 import { ChakraProvider } from '@chakra-ui/react'
 import theme from './utils/theme.js'
 import { ColorModeScript } from './utils/colorModeScript.jsx'
+import { FileProvider } from './context/FileContext'  
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ColorModeScript />
     <ChakraProvider theme={theme}>
-      <App />
+      <FileProvider>
+        <App />
+      </FileProvider>
     </ChakraProvider>
   </StrictMode>,
 )
