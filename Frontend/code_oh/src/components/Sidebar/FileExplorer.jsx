@@ -22,10 +22,10 @@ import { LANGUAGE_VERSIONS } from '../../services/languageVersions'
 
 
 export const FileExplorer = () => {
-  const { files, setFiles } = useFiles()
-  const { colorMode } = useColorMode()
-  const [isCreating, setIsCreating] = useState(false)
-  const [newFileName, setNewFileName] = useState('')
+    const { files, setFiles, setActiveFile } = useFiles()
+    const { colorMode } = useColorMode()
+    const [isCreating, setIsCreating] = useState(false)
+    const [newFileName, setNewFileName] = useState('')
 
 
   const fileExtensions = Object.keys(LANGUAGE_VERSIONS).map(lang => {
@@ -33,7 +33,10 @@ export const FileExplorer = () => {
       case 'javascript': return '.js'
       case 'python': return '.py'
       case 'java': return '.java'
-      case 'typescript': return '.ts'
+    case 'typescript': return '.ts'
+        case 'c': return '.c'
+        case 'cpp': return '.cpp'
+        case 'csharp': return '.csharp'
       default: return `.${lang}`
     }
   })
@@ -82,9 +85,9 @@ export const FileExplorer = () => {
         </HStack>
       )}
 
-        <VStack align="stretch" spacing={2}>
-        {files.map((file, index) => (
-            <HStack
+<VStack align="stretch" spacing={2}>
+    {files.map((file, index) => (
+        <HStack
             key={index}
             p={2}
             borderRadius="md"
@@ -92,12 +95,14 @@ export const FileExplorer = () => {
             _hover={{
                 bg: colorMode === 'dark' ? 'gray.600' : 'gray.300'
             }}
-            >
+            cursor="pointer"
+            onClick={() => setActiveFile(file)}
+        >
             <VscFile />
             <Text>{file.name}</Text>
-            </HStack>
-        ))}
-        </VStack>
+        </HStack>
+    ))}
+</VStack>
     </VStack>
   )
 }

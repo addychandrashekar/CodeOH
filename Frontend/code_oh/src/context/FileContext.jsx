@@ -12,15 +12,20 @@ const FileContext = createContext()
 
 // Custom hook to consume the context
 export const useFiles = () => {
-  return useContext(FileContext)
+  const context = useContext(FileContext)
+  if (!context) {
+    throw new Error('useFiles must be used within a FileProvider')
+  }
+  return context
 }
 
 // Provider component
 export const FileProvider = ({ children }) => {
   const [files, setFiles] = useState([])
+  const [activeFile, setActiveFile] = useState(null)
 
   return (
-    <FileContext.Provider value={{ files, setFiles }}>
+    <FileContext.Provider value={{ files, setFiles, activeFile, setActiveFile }}>
       {children}
     </FileContext.Provider>
   )
