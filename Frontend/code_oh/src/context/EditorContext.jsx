@@ -31,7 +31,7 @@ export const EditorProvider = ({ children }) => {
             const result = await executeCode(language, sourceCode)
             
             if (result.run) {
-                setOutput(result.run.output || '')
+                setOutput(result.run.output.split('\n') || '')
                 setError(result.run.stderr || '')
                 
                 if (!result.run.stderr) {
