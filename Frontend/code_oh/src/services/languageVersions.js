@@ -61,3 +61,16 @@ class Program {
 echo "Hello, World!";`
 
 }
+
+
+export const LANGUAGE_ICONS = {
+  'cpp': 'https://cdn-icons-png.flaticon.com/512/6132/6132222.png',
+  'csharp': 'https://cdn-icons-png.flaticon.com/512/6132/6132221.png',
+  'c': 'https://cdn-icons-png.flaticon.com/512/3665/3665923.png',
+  'py': 'https://cdn-icons-png.flaticon.com/512/5968/5968350.png',
+  'ts': 'https://cdn-icons-png.flaticon.com/512/5968/5968381.png',
+  'java': 'https://cdn-icons-png.flaticon.com/512/226/226777.png',
+  'js': 'https://cdn-icons-png.flaticon.com/512/5968/5968292.png',
+  'php': 'https://cdn-icons-png.flaticon.com/512/5968/5968332.png'
+}
+

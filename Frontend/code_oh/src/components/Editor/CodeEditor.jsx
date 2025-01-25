@@ -44,15 +44,15 @@ export const CodeEditor = () => {
     }
 
     return (
-        <Box>
-            <Editor
-                height="90vh"
-                theme="vs-dark"
-                language={language}
-                value={value}
-                onMount={onMount}
-                onChange={(newValue) => setValue(newValue)}
-            />
-        </Box>
+<Box h="100%" overflow="hidden">
+    <Editor
+        height="100%"
+        theme="vs-dark"
+        language={language}
+        value={value}
+        onMount={onMount}
+        onChange={(newValue) => setValue(newValue)}
+    />
+</Box>
     )
 }
