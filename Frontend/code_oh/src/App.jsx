@@ -1,21 +1,15 @@
-import { Box, Code, Grid, useColorMode } from '@chakra-ui/react'
-import React from 'react'
+import { Box, useColorMode } from '@chakra-ui/react'
+import React, { useState } from 'react'
 import { CodeEditor } from './components/Editor/CodeEditor'
-
-// import file explorer
 import { FileExplorer } from './components/Sidebar/FileExplorer'
-import { useFiles } from './context/FileContext'
+import { LLMExplorer } from './components/LLM_sideBar/LLMExplorer'
 import { TopBar } from './components/Toolbar/TopBar'
 import { ConsoleOutput } from './components/Console/ConsoleOutput'
-
-import {
-  Panel,
-  PanelGroup,
-  PanelResizeHandle
-} from 'react-resizable-panels'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 function App() {
   const { colorMode } = useColorMode()
+  const [isLLMOpen, setIsLLMOpen] = useState(false)
 
   const ResizeHandle = () => (
     <PanelResizeHandle
@@ -51,7 +45,7 @@ function App() {
         <Panel>
           <Box h="100%" display="flex" flexDirection="column">
             <Box h="40px">
-              <TopBar />
+              <TopBar toggleLLM={() => setIsLLMOpen(!isLLMOpen)} isLLMOpen={isLLMOpen} />
             </Box>
 
             <Box flex="1">
@@ -71,6 +65,17 @@ function App() {
             </Box>
           </Box>
         </Panel>
+
+        {isLLMOpen && (
+          <>
+            <ResizeHandle />
+            <Panel defaultSize={20} minSize={10} maxSize={40}>
+              <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
+                <LLMExplorer />
+              </Box>
+            </Panel>
+          </>
+        )}
       </PanelGroup>
     </Box>
   )

@@ -28,10 +28,9 @@ export const CodeEditor = () => {
             const fileExtension = activeFile.name.split('.').pop()
             const newLanguage = getLanguageFromExtension(fileExtension)
             setLanguage(newLanguage)
-            setValue(CODE_SNIPPETS[newLanguage] || '')
+            setValue(activeFile.content || CODE_SNIPPETS[newLanguage] || '')
         }
     }, [activeFile])
-
     const getLanguageFromExtension = (ext) => {
         const extensionMap = {
             'py': 'python',

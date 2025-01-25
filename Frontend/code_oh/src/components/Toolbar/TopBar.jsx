@@ -1,6 +1,7 @@
-import { Box, Code, HStack, IconButton, useColorMode } from '@chakra-ui/react'
+import { Box, Code, HStack, IconButton, useColorMode, Image, Spacer } from '@chakra-ui/react'
 import { useEditor } from '../../context/EditorContext'
-export const TopBar = () => {
+
+export const TopBar = ({ toggleLLM, isLLMOpen }) => {
     const { colorMode } = useColorMode()
     const { runCode, isLoading } = useEditor()
     
@@ -15,6 +16,7 @@ export const TopBar = () => {
         >
             <HStack spacing={4} width="100%">
                 <Code fontSize="md">Code-OH</Code>
+                <Spacer />
                 <IconButton
                     icon={
                         <span 
@@ -33,6 +35,22 @@ export const TopBar = () => {
                     variant="ghost"
                     onClick={runCode}
                     isLoading={isLoading}
+                    _hover={{
+                        bg: colorMode === 'dark' ? 'gray.700' : 'gray.200'
+                    }}
+                />
+                <IconButton
+                    icon={
+                        <Image 
+                            src="https://cdn-icons-png.flaticon.com/512/8637/8637099.png" 
+                            alt="AI Assistant" 
+                            boxSize="20px"
+                        />
+                    }
+                    aria-label="Toggle AI Assistant"
+                    size="sm"
+                    variant={isLLMOpen ? "solid" : "ghost"}
+                    onClick={toggleLLM}
                     _hover={{
                         bg: colorMode === 'dark' ? 'gray.700' : 'gray.200'
                     }}
