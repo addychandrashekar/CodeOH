@@ -1,14 +1,16 @@
 
 // TODO: Add updated versions for all languages base on piston api
+// Fetch all the versions from the piston api using : https://emkc.org/api/v2/piston/runtimes
 export const LANGUAGE_VERSIONS = {
     python: '3.10.0',
-    javascript: 'node-18.15.0',
+    javascript: '18.15.0',
     java: '15.0.2',
-    typescript: '5.0.0',
+    typescript: '5.0.3',
     csharp: '6.12.0',
     php: '8.2.3',
-    cpp: '11.2.0',
-    c: '11.2.0'
+    cpp: '10.2.0',
+    c: '10.2.0',
+    dart: '2.15.0'
 
 
 }
@@ -58,7 +60,13 @@ class Program {
     php: `
 <?php
 
-echo "Hello, World!";`
+echo "Hello, World!";`,
+    
+    dart: `
+void main() {
+
+    print('Hello, World!');
+}`,
 
 }
 

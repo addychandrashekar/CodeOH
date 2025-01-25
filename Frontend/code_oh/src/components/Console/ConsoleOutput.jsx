@@ -1,8 +1,9 @@
-import { Box, useColorMode } from '@chakra-ui/react'
+import { Box, Text, useColorMode } from '@chakra-ui/react'
+import { useEditor } from '../../context/EditorContext'
 
 export const ConsoleOutput = () => {
-
     const { colorMode } = useColorMode()
+    const { output, error } = useEditor()
 
     return (
         <Box 
@@ -12,8 +13,19 @@ export const ConsoleOutput = () => {
             h="200px"
             borderTop="1px"
             borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
+            color={colorMode === 'dark' ? 'white' : 'black'}
+            overflowY="auto"
         >
-            Console Output
+            {error && (
+                <Text color="red.500" whiteSpace="pre-wrap">
+                    {error}
+                </Text>
+            )}
+            {output && (
+                <Text whiteSpace="pre-wrap">
+                    {output}
+                </Text>
+            )}
         </Box>
     )
 }

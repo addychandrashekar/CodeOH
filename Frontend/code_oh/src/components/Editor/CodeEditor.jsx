@@ -6,13 +6,13 @@ import { useRef } from 'react'
 import { useFiles } from '../../context/FileContext'
 import { CODE_SNIPPETS } from '../../services/languageVersions'
 import { useEffect } from 'react'
-
+import { useEditor } from '../../context/EditorContext'
 
 
 export const CodeEditor = () => {
     const editorRef = useRef()
     const [value, setValue] = useState('')
-    const [language, setLanguage] = useState('javascript')
+    const { setEditorRef, language, setLanguage } = useEditor() 
     const { activeFile } = useFiles()
 
     useEffect(() => {
@@ -33,26 +33,29 @@ export const CodeEditor = () => {
             'csharp': 'csharp',
             'php': 'php',
             'cpp': 'cpp',
-            'c': 'c'
+            'c': 'c',
+            'dart': 'dart'
         }
         return extensionMap[ext] || 'javascript'
     }
 
     const onMount = (editor) => {
         editorRef.current = editor
+        setEditorRef(editor)
         editor.focus()
     }
 
     return (
-<Box h="100%" overflow="hidden">
-    <Editor
-        height="100%"
-        theme="vs-dark"
-        language={language}
-        value={value}
-        onMount={onMount}
-        onChange={(newValue) => setValue(newValue)}
-    />
-</Box>
+        <Box h="100%" overflow="hidden">
+            <Editor
+                height="100%"
+                theme="vs-dark"
+                language={language}
+                value={value}
+                onMount={onMount}
+                onChange={(newValue) => setValue(newValue)}
+            />
+        </Box>
+
     )
 }
