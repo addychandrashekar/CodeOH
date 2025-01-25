@@ -1,15 +1,16 @@
 # CodeOH
 
-
-
-
-
 # Code-OH
 
 A modern web-based code editor with integrated AI assistance.
-<img src="image.png" alt="Estimation Visualization" height="540" width="900">
 
-<img src="error.png" alt="Estimation Visualization" height="600" width="900">
+<img src="image.png" alt="Estimation Visualization" height="500" width="900">
+
+<img src="error.png" alt="Estimation Visualization" height="500" width="900">
+
+<img src="image2.png" alt="Estimation Visualization" height="500" width="900">
+
+<img src="LLM.png" alt="Estimation Visualization" height="500" width="900">
 ## Features
 
 - Multi-language support
@@ -26,6 +27,7 @@ A modern web-based code editor with integrated AI assistance.
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 
 
@@ -50,12 +52,12 @@ npm install monaco-python monaco-java
 ```
 
 This will install all required dependencies including:
+
 - Chakra UI for the interface
 - Monaco Editor for code editing
 - React Resizable Panels for layout
 - Axios for API calls
 - And other necessary packages
-
 
 ## Running the Project
 
