@@ -1,2 +1,2 @@
 # CodeOH
-<img src="image.png" alt="Estimation Visualization" width="500">
+<img src="image.png" alt="Estimation Visualization" height="700" width="500">
