@@ -33,7 +33,14 @@ function App() {
         File Explorer
       </Box>
 
-
+      {/* Top bar */}
+      <Box 
+        gridArea='top'
+        bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}
+        // p={}
+      >
+        <Code>Code-Oh</Code>
+      </Box>
 
       {/* Main Editor Area */}
       <Box 
