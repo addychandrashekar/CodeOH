@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react'
 import { executeCode } from '../services/PistonAPI'
+import { useToast } from '@chakra-ui/react'
 
 const EditorContext = createContext()
 
@@ -10,40 +11,53 @@ export const useEditor = () => {
     }
     return context
 }
+
 export const EditorProvider = ({ children }) => {
     const [editorRef, setEditorRef] = useState(null)
     const [language, setLanguage] = useState('javascript')
     const [output, setOutput] = useState('')
     const [error, setError] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const toast = useToast()
 
     const runCode = async () => {
-
-        const [isLoading, setIsLoading] = useState(false)
-
         if (!editorRef) return
 
         try {
             setIsLoading(true)
-            const sourceCode = editorRef.getValue() // This is the issue
+            const sourceCode = editorRef.getValue()
             if (!sourceCode) return
 
-            console.log('Running code:', sourceCode) 
             const result = await executeCode(language, sourceCode)
-            console.log('API Response:', result) 
             
             if (result.run) {
                 setOutput(result.run.output || '')
                 setError(result.run.stderr || '')
+                
+                if (!result.run.stderr) {
+                    toast({
+                        title: 'Success',
+                        description: 'Code executed successfully',
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true
+                    })
+                }
             }
         } catch (error) {
             console.error('Error executing code:', error)
             setError(error.message || 'An error occurred while executing the code')
-        }
-        finally {
+            toast({
+                title: 'Error',
+                description: error.message || 'An error occurred while executing the code',
+                status: 'error',
+                duration: 5000,
+                isClosable: true
+            })
+        } finally {
             setIsLoading(false)
         }
     }
-
     return (
         <EditorContext.Provider value={{
             editorRef,
@@ -52,7 +66,8 @@ export const EditorProvider = ({ children }) => {
             setLanguage,
             runCode,
             output,
-            error
+            error,
+            isLoading
         }}>
             {children}
         </EditorContext.Provider>

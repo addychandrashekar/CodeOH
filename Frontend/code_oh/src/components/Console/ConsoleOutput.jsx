@@ -10,7 +10,7 @@ export const ConsoleOutput = () => {
             gridArea='console'
             bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}
             p={4}
-            h="200px"
+            h="100%"
             borderTop="1px"
             borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
             color={colorMode === 'dark' ? 'white' : 'black'}

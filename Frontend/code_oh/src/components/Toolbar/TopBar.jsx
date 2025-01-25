@@ -1,9 +1,8 @@
 import { Box, Code, HStack, IconButton, useColorMode } from '@chakra-ui/react'
 import { useEditor } from '../../context/EditorContext'
-
 export const TopBar = () => {
     const { colorMode } = useColorMode()
-    const { runCode } = useEditor()
+    const { runCode, isLoading } = useEditor()
     
     return (
         <Box 
@@ -33,6 +32,7 @@ export const TopBar = () => {
                     size="sm"
                     variant="ghost"
                     onClick={runCode}
+                    isLoading={isLoading}
                     _hover={{
                         bg: colorMode === 'dark' ? 'gray.700' : 'gray.200'
                     }}
