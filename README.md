@@ -50,6 +50,10 @@ npm install monaco-languageclient vscode-languageserver-protocol
 
 npm install monaco-python monaco-java
 
+npm install primereact primeicons
+
+npm install primeflex --save
+
 ```
 
 This will install all required dependencies including:
@@ -65,5 +69,5 @@ This will install all required dependencies including:
 To start the development server:
 
 ```bash
-pm run dev
+npm run dev
 ```
