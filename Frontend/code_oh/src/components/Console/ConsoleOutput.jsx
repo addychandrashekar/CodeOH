@@ -4,29 +4,22 @@ import { useState, useRef, useEffect } from 'react'
 
 export const ConsoleOutput = () => {
     const { colorMode } = useColorMode()
-    const { output, error, handleConsoleInput } = useEditor()
+    const { handleConsoleInput, consoleHistory } = useEditor()
     const [inputValue, setInputValue] = useState('')
-    const [history, setHistory] = useState([])
     const inputRef = useRef(null)
 
     const handleKeyPress = async (e) => {
         if (e.key === 'Enter') {
-            // Add command to history
-            setHistory(prev => [...prev, { type: 'input', content: inputValue }])
-            
-            // Process the command
             if (handleConsoleInput) {
                 await handleConsoleInput(inputValue)
             }
-            
             setInputValue('')
         }
     }
 
-    // Auto-scroll to bottom when new content is added
     useEffect(() => {
         inputRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [history, output, error])
+    }, [consoleHistory])
 
     return (
         <Box 
@@ -41,27 +34,16 @@ export const ConsoleOutput = () => {
         >
             <VStack align="stretch" spacing={2}>
                 {/* History */}
-                {history.map((entry, index) => (
+                {consoleHistory.map((entry, index) => (
                     <Text 
                         key={index} 
-                        color={entry.type === 'input' ? 'green.500' : 'inherit'}
+                        color={entry.type === 'input' ? 'green.500' : entry.type === 'error' ? 'red.500' : 'inherit'}
                         whiteSpace="pre-wrap"
+                        fontFamily="monospace"
                     >
                         {entry.type === 'input' ? `> ${entry.content}` : entry.content}
                     </Text>
                 ))}
-                
-                {/* Current output/error */}
-                {error && (
-                    <Text color="red.500" whiteSpace="pre-wrap">
-                        {error}
-                    </Text>
-                )}
-                {output && (
-                    <Text whiteSpace="pre-wrap">
-                        {output}
-                    </Text>
-                )}
 
                 {/* Input field */}
                 <Input

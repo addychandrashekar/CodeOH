@@ -15,13 +15,21 @@ export const useEditor = () => {
     return context
 }
 
+const WELCOME_ASCII =
+    `
+Welcome to Code-oh! This is a simple online code editor that supports multiple programming languages.
+    `
+
+
 export const EditorProvider = ({ children }) => {
     const [editorRef, setEditorRef] = useState(null)
     const [language, setLanguage] = useState('javascript')
     const [output, setOutput] = useState('')
     const [error, setError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-    const [consoleHistory, setConsoleHistory] = useState([])
+    const [consoleHistory, setConsoleHistory] = useState([
+        { type: 'output', content: WELCOME_ASCII }
+    ])
     const { files, setFiles } = useFiles()  // Add this line
     const toast = useToast()
 
