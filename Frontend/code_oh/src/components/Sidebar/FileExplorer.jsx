@@ -6,12 +6,10 @@ import {
   IconButton,
   Input,
   useColorMode,
-  useToast,
+    useToast,
+  Image,
 } from '@chakra-ui/react';
 import { 
-  AddIcon, 
-  ChevronRightIcon, 
-  ChevronDownIcon, 
   DeleteIcon,
 } from '@chakra-ui/icons';
 import { useState } from 'react';
@@ -53,7 +51,7 @@ const FileItem = ({ item, depth = 0 }) => {
         variant="ghost"
         onClick={(e) => {
           e.stopPropagation();
-          // deleteItem(item.path);
+          // Implement delete functionality here
         }}
         color={colorMode === 'dark' ? 'white' : 'black'}
       />
@@ -68,14 +66,27 @@ export const FileExplorer = () => {
   const [newFileName, setNewFileName] = useState('');
   const toast = useToast();
 
-  const fileExtensions = ['.js', '.py', '.java', '.cpp', '.ts'];
-
-  const createFile = (extension) => {
-    if (newFileName) {
-      const fileName = newFileName.includes('.') ? newFileName : `${newFileName}${extension}`;
-      setFiles([...files, { name: fileName, content: '' }]);
-      setNewFileName('');
-      setIsCreating(false);
+  const handleFileUpload = (event) => {
+    const uploadedFiles = event.target.files;
+    const newFiles = [];
+    for (const file of uploadedFiles) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        newFiles.push({
+          name: file.name,
+          content: e.target.result,
+        });
+        if (newFiles.length === uploadedFiles.length) {
+          setFiles((prevFiles) => [...prevFiles, ...newFiles]);
+          toast({
+            title: 'Files uploaded successfully!',
+            status: 'success',
+            duration: 2000,
+            isClosable: true,
+          });
+        }
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -89,12 +100,44 @@ export const FileExplorer = () => {
     >
       <HStack justify="space-between" p={2}>
         <Text fontSize="sm" fontWeight="bold">EXPLORER</Text>
-        <IconButton
-          size="xs"
-          icon={<AddIcon />}
-          onClick={() => setIsCreating(true)}
-          color={colorMode === 'dark' ? 'white' : 'black'}
-        />
+        <HStack spacing={2}>
+          <IconButton
+            size="xs"
+            icon={
+                <Image
+                src="https://cdn-icons-png.flaticon.com/512/9672/9672517.png"
+                alt="New Folder"
+                boxSize="16px"
+                />
+            }
+            onClick={() => setIsCreating(true)}
+            color={colorMode === 'dark' ? 'white' : 'black'}
+          />
+          <Input
+            type="file"
+            multiple
+            display="none"
+            id="file-upload"
+            onChange={handleFileUpload}
+                  />
+                  
+          <label htmlFor="file-upload">
+            <IconButton
+              size="xs"
+              as="span"
+                icon={
+                <Image
+                    src="https://cdn-icons-png.flaticon.com/512/8637/8637099.png"
+                    alt="New File"
+                    boxSize="16px"
+                />
+                }
+              color={colorMode === 'dark' ? 'white' : 'black'}
+              _hover={{ cursor: 'pointer' }}
+            />
+          </label >
+
+        </HStack>
       </HStack>
 
       {isCreating && (
@@ -106,26 +149,15 @@ export const FileExplorer = () => {
             onChange={(e) => setNewFileName(e.target.value)}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
-                createFile(fileExtensions[0]);
+                const fileName = newFileName.includes('.') ? newFileName : `${newFileName}.txt`;
+                setFiles([...files, { name: fileName, content: '' }]);
+                setNewFileName('');
+                setIsCreating(false);
               }
             }}
             color={colorMode === 'dark' ? 'white' : 'black'}
             bg={colorMode === 'dark' ? 'gray.700' : 'white'}
           />
-          {/* <HStack mt={2} spacing={2}>
-            {fileExtensions.map((ext) => (
-              <Text
-                key={ext}
-                cursor="pointer"
-                onClick={() => createFile(ext)}
-                fontSize="xs"
-                color={colorMode === 'dark' ? 'blue.300' : 'blue.500'}
-                _hover={{ textDecoration: 'underline' }}
-              >
-                {ext}
-              </Text>
-            ))}
-          </HStack> */}
         </Box>
       )}
 
