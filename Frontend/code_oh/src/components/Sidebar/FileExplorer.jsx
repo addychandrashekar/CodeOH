@@ -6,10 +6,10 @@ import {
   IconButton,
   Input,
   useColorMode,
-    useToast,
-  Image,
+  useToast,
 } from '@chakra-ui/react';
 import { 
+  AddIcon, 
   DeleteIcon,
 } from '@chakra-ui/icons';
 import { useState } from 'react';
@@ -101,42 +101,28 @@ export const FileExplorer = () => {
       <HStack justify="space-between" p={2}>
         <Text fontSize="sm" fontWeight="bold">EXPLORER</Text>
         <HStack spacing={2}>
-          <IconButton
-            size="xs"
-            icon={
-                <Image
-                src="https://cdn-icons-png.flaticon.com/512/9672/9672517.png"
-                alt="New Folder"
-                boxSize="16px"
-                />
-            }
-            onClick={() => setIsCreating(true)}
-            color={colorMode === 'dark' ? 'white' : 'black'}
-          />
           <Input
             type="file"
             multiple
             display="none"
             id="file-upload"
             onChange={handleFileUpload}
-                  />
-                  
+          />
           <label htmlFor="file-upload">
             <IconButton
               size="xs"
               as="span"
-                icon={
-                <Image
-                    src="https://cdn-icons-png.flaticon.com/512/8637/8637099.png"
-                    alt="New File"
-                    boxSize="16px"
-                />
-                }
+              icon={<AddIcon />}
               color={colorMode === 'dark' ? 'white' : 'black'}
               _hover={{ cursor: 'pointer' }}
             />
-          </label >
-
+          </label>
+          <IconButton
+            size="xs"
+            icon={<AddIcon />}
+            onClick={() => setIsCreating(true)}
+            color={colorMode === 'dark' ? 'white' : 'black'}
+          />
         </HStack>
       </HStack>
 
