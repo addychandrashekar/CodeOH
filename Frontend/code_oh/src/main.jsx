@@ -6,6 +6,7 @@ import theme from './utils/theme.js'
 import { ColorModeScript } from './utils/colorModeScript.jsx'
 import { FileProvider } from './context/FileContext' 
 import { EditorProvider } from './context/EditorContext' 
+import './styles/global.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

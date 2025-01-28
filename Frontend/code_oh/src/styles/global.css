@@ -1,0 +1,79 @@
+/* .p-tree {
+    padding: 0;
+    border: none;
+}
+
+.p-tree .p-tree-container .p-treenode {
+    padding: 0;
+}
+
+.p-tree .p-tree-container .p-treenode .p-treenode-content {
+    border: none;
+    padding: 0;
+}
+
+.p-tree .p-tree-container .p-treenode .p-treenode-children {
+    padding-left: 1rem;
+}
+
+.p-tree .p-tree-container .p-treenode .p-tree-toggler {
+    margin-right: 0.5rem;
+} */
+
+/* Remove padding & borders from the tree */
+.p-tree {
+    padding: 0;
+    border: none;
+    background-color: #1a202c !important; /* Chakra UI dark mode gray */
+}
+
+/* Ensure tree container follows a proper structure */
+.p-tree .p-tree-container {
+    padding: 0;
+    background-color: transparent !important;
+}
+
+/* Ensure individual tree nodes align correctly */
+.p-tree .p-tree-container .p-treenode {
+    padding: 0;
+    margin-left: 0;
+}
+
+/* Fix white background in tree content */
+.p-tree .p-tree-container .p-treenode .p-treenode-content {
+    border: none;
+    padding: 5px 8px; /* Adjust spacing for better hierarchy */
+    background-color: transparent !important;
+    display: flex;
+    align-items: center;
+}
+
+/* Indent child nodes properly */
+.p-tree .p-tree-container .p-treenode .p-treenode-children {
+    padding-left: 1.2rem; /* Keep indentation for nested folders */
+}
+
+/* Fix toggle (expand/collapse arrow) spacing */
+.p-tree .p-tree-container .p-treenode .p-tree-toggler {
+    margin-right: 0.5rem;
+    background-color: transparent !important;
+}
+
+/* Ensure toggler (caret) stays visible in dark mode */
+.p-tree .p-tree-toggler {
+    background-color: transparent !important;
+    color: white !important;
+}
+
+/* Fix hover effects */
+.p-tree .p-tree-container .p-treenode .p-treenode-content:hover {
+    background-color: #2d3748 !important; /* Chakra hover color */
+}
+
+/* Fix 'No available options' background */
+.p-tree .p-tree-empty-message {
+    background-color: #1a202c !important;
+    color: #a0aec0 !important; /* Chakra gray text */
+    text-align: center;
+    padding: 8px;
+}

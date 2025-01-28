@@ -82,3 +82,7 @@ export const LANGUAGE_ICONS = {
   'php': 'https://cdn-icons-png.flaticon.com/512/5968/5968332.png'
 }
 
+// export const FOLDER_FILE_ICONS = {
+//     folder: 'https://www.flaticon.com/free-icon/open-folder_10701617',
+//     // file: 'https://cdn-icons-png.flaticon.com/512/633/633624.png'
+// }

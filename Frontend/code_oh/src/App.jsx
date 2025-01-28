@@ -7,6 +7,11 @@ import { TopBar } from './components/Toolbar/TopBar'
 import { ConsoleOutput } from './components/Console/ConsoleOutput'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
+import 'primereact/resources/themes/saga-blue/theme.css'; 
+import 'primereact/resources/primereact.min.css';         
+import 'primeicons/primeicons.css';
+
+
 function App() {
   const { colorMode } = useColorMode()
   const [isLLMOpen, setIsLLMOpen] = useState(false)
