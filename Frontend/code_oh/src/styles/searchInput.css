@@ -1,0 +1,107 @@
+@keyframes rotateGlow {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.styled-wrapper .grid {
+  height: 800px;
+  width: 800px;
+  background-image: linear-gradient(to right, #0f0f10 1px, transparent 1px),
+    linear-gradient(to bottom, #0f0f10 1px, transparent 1px);
+  background-size: 1rem 1rem;
+  background-position: center center;
+  position: absolute;
+  z-index: -1;
+  filter: blur(1px);
+}
+
+.styled-wrapper .glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  filter: blur(20px);
+  opacity: 0.6;
+  overflow: hidden;
+}
+
+.styled-wrapper .glow::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 400%;
+  height: 400%;
+  background-image: conic-gradient(
+    #000,
+    #402fb5 10%,
+    #000 40%,
+    #000 50%,
+    #cf30aa 70%,
+    #000 90%
+  );
+  transform: translate(-50%, -50%);
+  animation: rotateGlow 6s linear infinite;
+}
+
+.styled-wrapper #poda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.styled-wrapper .input {
+  background-color: #010201;
+  border: none;
+  width: 301px;
+  height: 56px;
+  border-radius: 10px;
+  color: white;
+  padding-inline: 59px;
+  font-size: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.styled-wrapper .input::placeholder {
+  color: #c0b9c0;
+}
+
+.styled-wrapper .input:focus {
+  outline: none;
+}
+
+.styled-wrapper #main {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.styled-wrapper #search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.styled-wrapper #filter-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  max-height: 40px;
+  max-width: 38px;
+  height: 100%;
+  width: 100%;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #161329, black, #1d1b4b);
+  border: 1px solid transparent;
+}

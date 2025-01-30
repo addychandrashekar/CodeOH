@@ -3,7 +3,7 @@ import { executeCode } from '../services/PistonAPI'
 import { useToast } from '@chakra-ui/react'
 import { LANGUAGE_VERSIONS } from '../services/languageVersions'
 import { useFiles } from '../context/FileContext'
-
+import { WELCOME_ASCII } from '../services/languageVersions'
 
 const EditorContext = createContext()
 
@@ -15,10 +15,6 @@ export const useEditor = () => {
     return context
 }
 
-const WELCOME_ASCII =
-    `
-Welcome to Code-oh! This is a simple online code editor that supports multiple programming languages.
-    `
 
 
 export const EditorProvider = ({ children }) => {
@@ -30,9 +26,67 @@ export const EditorProvider = ({ children }) => {
     const [consoleHistory, setConsoleHistory] = useState([
         { type: 'output', content: WELCOME_ASCII }
     ])
-    const { files, setFiles } = useFiles()  // Add this line
+    const { files, setFiles } = useFiles()  
     const toast = useToast()
 
+    const [currentPath, setCurrentPath] = useState([])
+
+const getCurrentDirectoryFiles = (path) => {
+    if (!files) return []
+    
+    let current = files
+    for (const dir of path) {
+        const found = current.find(f => f.label === dir && 
+            (f.data.isDirectory || f.children)) // Check both isDirectory and children
+        if (!found) return []
+        current = found.children || []
+    }
+    return current
+}
+
+const findFileInPath = (path, target) => {
+    const current = getCurrentDirectoryFiles(path)
+    return current.find(f => f.label === target)
+}
+
+    const addFileToPath = (path, newFile) => {
+        if (path.length === 0) {
+            setFiles(prev => [...prev, newFile])
+            return
+        }
+        
+        setFiles(prev => {
+            const newFiles = [...prev]
+            let current = newFiles
+            for (const dir of path) {
+                const found = current.find(f => f.label === dir && f.data.isDirectory)
+                if (!found) return newFiles
+                if (!found.children) found.children = []
+                current = found.children
+            }
+            current.push(newFile)
+            return newFiles
+        })
+    }
+
+    const removeFileFromPath = (path, target) => {
+        setFiles(prev => {
+            const newFiles = [...prev]
+            if (path.length === 0) {
+                return newFiles.filter(f => f.label !== target)
+            }
+            
+            let current = newFiles
+            for (const dir of path) {
+                const found = current.find(f => f.label === dir && f.data.isDirectory)
+                if (!found) return newFiles
+                current = found.children
+            }
+            const index = current.findIndex(f => f.label === target)
+            if (index !== -1) current.splice(index, 1)
+            return newFiles
+        })
+    }
     const handleConsoleInput = async (input) => {
         try {
             // Handle shell commands
@@ -40,7 +94,9 @@ export const EditorProvider = ({ children }) => {
                 'clear': () => {
                     setOutput('')
                     setError('')
-                    setConsoleHistory([])
+                    setConsoleHistory([
+                        { type: 'output', content: WELCOME_ASCII }
+                    ])
                     return true
                 },
                 'ls': async () => {
@@ -48,18 +104,9 @@ export const EditorProvider = ({ children }) => {
                         setConsoleHistory(prev => [...prev, { type: 'output', content: 'No files found' }])
                         return true
                     }
-                    const fileList = files.map(f => f.label).join('\n')
+                    const currentDirFiles = getCurrentDirectoryFiles(currentPath)
+                    const fileList = currentDirFiles.map(f => f.label).join('\n')
                     setConsoleHistory(prev => [...prev, { type: 'output', content: fileList }])
-                    return true
-                },
-                'cat': async (filename) => {
-                    if (!files) return false
-                    const file = files.find(f => f.label === filename)
-                    if (file) {
-                        setConsoleHistory(prev => [...prev, { type: 'output', content: file.data.content }])
-                    } else {
-                        setConsoleHistory(prev => [...prev, { type: 'error', content: `File ${filename} not found` }])
-                    }
                     return true
                 },
                 'mkdir': async (dirname) => {
@@ -68,15 +115,173 @@ export const EditorProvider = ({ children }) => {
                         return true
                     }
                     const newFolder = {
-                        key: dirname,
+                        key: `${currentPath.join('/')}/${dirname}`,
                         label: dirname,
-                        data: { isDirectory: true },
+                        data: { 
+                            isDirectory: true,
+                            content: '' 
+                        },
                         children: []
                     }
-                    setFiles(prev => [...prev, newFolder])
+                    addFileToPath(currentPath, newFolder)
                     setConsoleHistory(prev => [...prev, { type: 'output', content: `Created directory ${dirname}` }])
                     return true
+                },
+                'touch': async (filename) => {
+                    if (!filename) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: 'File name is required' }])
+                        return true
+                    }
+                    const newFile = {
+                        key: `${currentPath.join('/')}/${filename}`,
+                        label: filename,
+                        data: { 
+                            isDirectory: false,
+                            content: '' 
+                        }
+                    }
+                    addFileToPath(currentPath, newFile)
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: `Created file ${filename}` }])
+                    return true
+                },
+                'cat': async (filename) => {
+                    if (!filename) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: 'Please specify a file' }])
+                        return true
+                    }
+                    const file = findFileInPath(currentPath, filename)
+                    if (!file) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `File ${filename} not found` }])
+                        return true
+                    }
+                    
+                    if (file.data.isDirectory) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `${filename} is a directory` }])
+                        return true
+                    }
+                    
+                    // Access content directly from data
+                    const content = file.data.content || ''
+                    setConsoleHistory(prev => [...prev, { type: 'output', content }])
+                    return true
+                },
+    'cd': async (path) => {
+        if (!path) {
+            setCurrentPath([]) // Go to root
+            return true
+        }
+        if (path === '..') {
+            if (currentPath.length > 0) {
+                setCurrentPath(prev => prev.slice(0, -1))
+            }
+            return true
+        }
+        
+        const targetDir = findFileInPath(currentPath, path)
+        if (!targetDir) {
+            setConsoleHistory(prev => [...prev, { type: 'error', content: `Directory ${path} not found` }])
+            return true
+        }
+        
+        // Check if it's a directory either by isDirectory flag or presence of children
+        if (!targetDir.data?.isDirectory && !targetDir.children) {
+            setConsoleHistory(prev => [...prev, { type: 'error', content: `${path} is not a directory` }])
+            return true
+        }
+        
+        setCurrentPath(prev => [...prev, path])
+        return true
+    },
+                'rm': async (flag, target) => {
+                    if (!target && flag) {
+                        target = flag
+                        flag = ''
+                    }
+                    if (!target) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: 'Please specify a target' }])
+                        return true
+                    }
+                    const isRecursive = flag === '-r' || flag === '-rf'
+                    const file = findFileInPath(currentPath, target)
+                    
+                    if (!file) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `${target} not found` }])
+                        return true
+                    }
+                    if (file.data.isDirectory && !isRecursive) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `Cannot remove ${target}: Is a directory. Use -r flag` }])
+                        return true
+                    }
+                    
+                    removeFileFromPath(currentPath, target)
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: `Removed ${target}` }])
+                    return true
+                },
+                'pwd': async () => { // Print working directory
+                    const path = currentPath.length > 0 ? '/' + currentPath.join('/') : '/'
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: path }])
+                    return true
+                },
+                'echo': async (...rawArgs) => {
+                    // rawArgs = something like ['Hello', 'world', '>', 'myfile.txt']
+                    // or maybe 'echo Hello world > myfile.txt'
+
+                    // 1) Combine everything into a single string
+                    const inputString = rawArgs.join(' ');
+
+                    // 2) Check if there's a '>' for redirection
+                    const redirIndex = inputString.indexOf('>');
+                    if (redirIndex === -1) {
+                        // Just print to console if no file given
+                        setConsoleHistory(prev => [...prev, { type: 'output', content: inputString }]);
+                        return true;
+                    }
+
+                    // If we do find '>', separate the text from the filename
+                    const parts = inputString.split('>');
+                    const textToWrite = parts[0].trim();
+                    const filename = parts[1].trim();
+
+                    if (!filename) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: 'Missing filename after >' }]);
+                        return true;
+                    }
+
+                    // 3) Find the file in the current path
+                    const file = findFileInPath(currentPath, filename);
+                    if (!file) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `File ${filename} not found` }]);
+                        return true;
+                    }
+                    if (file.data.isDirectory) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `${filename} is a directory` }]);
+                        return true;
+                    }
+
+                    // 4) Write text to that file's data.content
+                    file.data.content = textToWrite;
+
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: '' }]);
+                    return true;
+                },
+                'help': async () => {
+                    const helpText = `
+                    Available commands:
+                        clear            Clear the terminal
+                        ls               List files
+                        mkdir <dir>      Create directory
+                        touch <file>     Create file
+                        cat <file>       Show file contents
+                        cd <dir>         Change directory
+                        rm [-r] <target> Remove file or folder (-r for folder)
+                        pwd              Print working directory
+                        help             Show this help
+                    `;
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: helpText }]);
+                    return true;
                 }
+
+
             }
 
             // Add command to history

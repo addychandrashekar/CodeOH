@@ -86,3 +86,18 @@ export const LANGUAGE_ICONS = {
 //     folder: 'https://www.flaticon.com/free-icon/open-folder_10701617',
 //     // file: 'https://cdn-icons-png.flaticon.com/512/633/633624.png'
 // }
+
+export const WELCOME_ASCII =
+    `
+                            ▄████▄   ▒█████  ▓█████▄ ▓█████     ▒█████   ██░ ██ 
+                            ▒██▀ ▀█  ▒██▒  ██▒▒██▀ ██▌▓█   ▀    ▒██▒  ██▒▓██░ ██▒
+                            ▒▓█    ▄ ▒██░  ██▒░██   █▌▒███      ▒██░  ██▒▒██▀▀██░
+                            ▒▓▓▄ ▄██▒▒██   ██░░▓█▄   ▌▒▓█  ▄    ▒██   ██░░▓█ ░██ 
+                            ▒ ▓███▀ ░░ ████▓▒░░▒████▓ ░▒████▒   ░ ████▓▒░░▓█▒░██▓
+                            ░ ░▒ ▒  ░░ ▒░▒░▒░  ▒▒▓  ▒ ░░ ▒░ ░   ░ ▒░▒░▒░  ▒ ░░▒░▒
+                            ░  ▒     ░ ▒ ▒░  ░ ▒  ▒  ░ ░  ░     ░ ▒ ▒░  ▒ ░▒░ ░
+                            ░        ░ ░ ░ ▒   ░ ░  ░    ░      ░ ░ ░ ▒   ░  ░░ ░
+                            ░ ░          ░ ░     ░       ░  ░       ░ ░   ░  ░  ░
+                            ░                  ░                                 
+Welcome to Code-oh! This is a simple online code editor that supports multiple programming languages.
+    `

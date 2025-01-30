@@ -6,33 +6,17 @@ import {
     useColorMode,
 } from '@chakra-ui/react'
 import React from 'react'
+import SearchInput from './SearchInput';
 
 export const LLMExplorer = () => {
     const { colorMode } = useColorMode()
-
     return (
-        <VStack
-            align="stretch" 
-            spacing={4} 
-            h="calc(100vh - 32px)"
-            overflowY="auto"
-            p={2}
-            css={{
-                '&::-webkit-scrollbar': {
-                    width: '4px',
-                },
-                '&::-webkit-scrollbar-track': {
-                    width: '6px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                    background: colorMode === 'dark' ? 'gray.700' : 'gray.300',
-                    borderRadius: '24px',
-                },
-            }}
+        <Box
+            h="100%"
+            w="100%"
+            p={4}
         >
-            <HStack justify="space-between" padding={2}>
-                <Text fontSize="lg" fontWeight="bold">LLM Assistant</Text>
-            </HStack>
-        </VStack>
-    )
+            <SearchInput />
+        </Box>
+    );
 }
