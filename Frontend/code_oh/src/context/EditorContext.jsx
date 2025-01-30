@@ -4,6 +4,7 @@ import { useToast } from '@chakra-ui/react'
 import { LANGUAGE_VERSIONS } from '../services/languageVersions'
 import { useFiles } from '../context/FileContext'
 import { WELCOME_ASCII } from '../services/languageVersions'
+import { AUTHOR } from '../services/languageVersions'
 
 const EditorContext = createContext()
 
@@ -91,6 +92,10 @@ const findFileInPath = (path, target) => {
         try {
             // Handle shell commands
             const shellCommands = {
+                'author$': () => { 
+                    setConsoleHistory(prev => [...prev, { type: 'output', content: AUTHOR }])
+                    return true
+                },
                 'clear': () => {
                     setOutput('')
                     setError('')
