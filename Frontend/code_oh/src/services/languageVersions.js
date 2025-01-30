@@ -100,8 +100,8 @@ export const WELCOME_ASCII =
                             ░ ░          ░ ░     ░       ░  ░       ░ ░   ░  ░  ░
                             ░                  ░                                 
 Welcome to Code-oh! This is a simple online code editor that supports multiple programming languages.
-Use command author$ to know more about the authors.
-Use command help to get started.
+Use command \`author$\` to know more about the authors.
+Use command \`help\` to get started.
     `
 
 export const AUTHOR = 
