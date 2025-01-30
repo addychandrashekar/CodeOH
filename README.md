@@ -54,6 +54,8 @@ npm install primereact primeicons
 
 npm install primeflex --save
 
+npm install styled-components
+
 ```
 
 This will install all required dependencies including:
