@@ -1,11 +1,13 @@
 import { Box, useColorMode } from '@chakra-ui/react'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { CodeEditor } from './components/Editor/CodeEditor'
 import { FileExplorer } from './components/Sidebar/FileExplorer'
 import { LLMExplorer } from './components/LLM_sideBar/LLMExplorer'
 import { TopBar } from './components/Toolbar/TopBar'
 import { ConsoleOutput } from './components/Console/ConsoleOutput'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
+import Loader from './components/Loading/Loader'
+import { LOADINGTIMER } from './constants/loadingtimer'
 
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
@@ -15,6 +17,18 @@ import 'primeicons/primeicons.css';
 function App() {
   const { colorMode } = useColorMode()
   const [isLLMOpen, setIsLLMOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Set a timer to hide the loader after LOADINGTIMER  seconds
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, LOADINGTIMER )
+
+    // Cleanup the timer if component unmounts
+    return () => clearTimeout(timer)
+  }, [])
+
 
   const ResizeHandle = () => (
     <PanelResizeHandle
@@ -36,8 +50,31 @@ function App() {
     />
   )
 
+  // Show loader while loading
+  if (isLoading) {
+    return (
+      <Box 
+        h="100vh" 
+        w="100vw" 
+        display="flex" 
+        alignItems="center" 
+        justifyContent="center"
+        bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}
+      >
+        <Loader />
+      </Box>
+    )
+  }
+
   return (
-    <Box h="100vh" overflow="hidden">
+    <Box 
+      style={{
+        opacity: isLoading ? 0 : 1,
+        transition: 'opacity 0.5s ease-in-out'
+      }}
+      h="100vh" 
+      overflow="hidden"
+    >
       <PanelGroup direction="horizontal">
         <Panel defaultSize={20} minSize={10} maxSize={40}>
           <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
