@@ -6,8 +6,17 @@ import { useFiles } from '../context/FileContext'
 import { WELCOME_ASCII } from '../services/languageVersions'
 import { AUTHOR } from '../services/languageVersions'
 
+/**
+ * Context for managing editor state and functionality
+ * @type {React.Context}
+ */
 const EditorContext = createContext()
 
+/**
+ * Custom hook to access the EditorContext
+ * @returns {Object} Editor context value
+ * @throws {Error} If used outside of EditorProvider
+ */
 export const useEditor = () => {
     const context = useContext(EditorContext)
     if (!context) {
@@ -17,8 +26,16 @@ export const useEditor = () => {
 }
 
 
-
+/**
+ * Provider component for editor functionality
+ * Manages editor state, file operations, and code execution
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components
+ */
 export const EditorProvider = ({ children }) => {
+    // Editor state management
     const [editorRef, setEditorRef] = useState(null)
     const [language, setLanguage] = useState('javascript')
     const [output, setOutput] = useState('')
@@ -31,25 +48,40 @@ export const EditorProvider = ({ children }) => {
     const toast = useToast()
 
     const [currentPath, setCurrentPath] = useState([])
-
-const getCurrentDirectoryFiles = (path) => {
-    if (!files) return []
-    
-    let current = files
-    for (const dir of path) {
-        const found = current.find(f => f.label === dir && 
-            (f.data.isDirectory || f.children)) // Check both isDirectory and children
-        if (!found) return []
-        current = found.children || []
+    /**
+     * Gets files in the current directory path
+     * @param {string[]} path - Array of directory names
+     * @returns {Array} Array of file objects in the current directory
+     */
+    const getCurrentDirectoryFiles = (path) => {
+        if (!files) return []
+        
+        let current = files
+        for (const dir of path) {
+            const found = current.find(f => f.label === dir && 
+                (f.data.isDirectory || f.children)) // Check both isDirectory and children
+            if (!found) return []
+            current = found.children || []
+        }
+        return current
     }
-    return current
-}
 
-const findFileInPath = (path, target) => {
-    const current = getCurrentDirectoryFiles(path)
-    return current.find(f => f.label === target)
-}
+    /**
+     * Finds a file in the current directory path
+     * @param {string[]} path - Array of directory names
+     * @param {string} target - Target file name
+     * @returns {Object|undefined} File object if found
+     */
+    const findFileInPath = (path, target) => {
+        const current = getCurrentDirectoryFiles(path)
+        return current.find(f => f.label === target)
+    }
 
+    /**
+     * Adds a file to the specified path
+     * @param {string[]} path - Array of directory names
+     * @param {Object} newFile - File object to add
+     */
     const addFileToPath = (path, newFile) => {
         if (path.length === 0) {
             setFiles(prev => [...prev, newFile])
@@ -70,6 +102,11 @@ const findFileInPath = (path, target) => {
         })
     }
 
+    /**
+     * Removes a file from the specified path
+     * @param {string[]} path - Array of directory names
+     * @param {string} target - Target file name to remove
+     */
     const removeFileFromPath = (path, target) => {
         setFiles(prev => {
             const newFiles = [...prev]
@@ -88,6 +125,11 @@ const findFileInPath = (path, target) => {
             return newFiles
         })
     }
+
+    /**
+     * Handles console input commands
+     * @param {string} input - Console input string
+     */
     const handleConsoleInput = async (input) => {
         try {
             // Handle shell commands
@@ -170,33 +212,33 @@ const findFileInPath = (path, target) => {
                     setConsoleHistory(prev => [...prev, { type: 'output', content }])
                     return true
                 },
-    'cd': async (path) => {
-        if (!path) {
-            setCurrentPath([]) // Go to root
-            return true
-        }
-        if (path === '..') {
-            if (currentPath.length > 0) {
-                setCurrentPath(prev => prev.slice(0, -1))
-            }
-            return true
-        }
-        
-        const targetDir = findFileInPath(currentPath, path)
-        if (!targetDir) {
-            setConsoleHistory(prev => [...prev, { type: 'error', content: `Directory ${path} not found` }])
-            return true
-        }
-        
-        // Check if it's a directory either by isDirectory flag or presence of children
-        if (!targetDir.data?.isDirectory && !targetDir.children) {
-            setConsoleHistory(prev => [...prev, { type: 'error', content: `${path} is not a directory` }])
-            return true
-        }
-        
-        setCurrentPath(prev => [...prev, path])
-        return true
-    },
+                'cd': async (path) => {
+                    if (!path) {
+                        setCurrentPath([]) // Go to root
+                        return true
+                    }
+                    if (path === '..') {
+                        if (currentPath.length > 0) {
+                            setCurrentPath(prev => prev.slice(0, -1))
+                        }
+                        return true
+                    }
+                    
+                    const targetDir = findFileInPath(currentPath, path)
+                    if (!targetDir) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `Directory ${path} not found` }])
+                        return true
+                    }
+                    
+                    // Check if it's a directory either by isDirectory flag or presence of children
+                    if (!targetDir.data?.isDirectory && !targetDir.children) {
+                        setConsoleHistory(prev => [...prev, { type: 'error', content: `${path} is not a directory` }])
+                        return true
+                    }
+                    
+                    setCurrentPath(prev => [...prev, path])
+                    return true
+                },
                 'rm': async (flag, target) => {
                     if (!target && flag) {
                         target = flag
@@ -325,6 +367,10 @@ const findFileInPath = (path, target) => {
         }
     }
 
+    /**
+     * Executes code in the editor
+     * @returns {Promise<void>}
+     */
     const runCode = async () => {
         if (!editorRef) return
 

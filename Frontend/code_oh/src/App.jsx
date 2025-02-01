@@ -14,11 +14,21 @@ import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 
 
+/**
+ * Main application component that provides the layout and structure for the code editor.
+ * Features a resizable panel layout with file explorer, code editor, console output,
+ * and optional AI assistant panel. Includes a loading screen on initial render.
+ * 
+ * @component
+ * @returns {JSX.Element} The main application interface
+ */
 function App() {
   const { colorMode } = useColorMode()
   const [isLLMOpen, setIsLLMOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
+
+  // Initialize loading state
   useEffect(() => {
     // Set a timer to hide the loader after LOADINGTIMER  seconds
     const timer = setTimeout(() => {
@@ -30,6 +40,10 @@ function App() {
   }, [])
 
 
+  /**
+   * Vertical resize handle component for panel resizing
+   * @returns {JSX.Element} A vertical resize handle with theme-aware styling
+   */
   const ResizeHandle = () => (
     <PanelResizeHandle
       style={{
@@ -40,6 +54,10 @@ function App() {
     />
   )
 
+  /**
+   * Horizontal resize handle component for panel resizing
+   * @returns {JSX.Element} A horizontal resize handle with theme-aware styling
+   */
   const HorizontalResizeHandle = () => (
     <PanelResizeHandle
       style={{
@@ -66,6 +84,7 @@ function App() {
     )
   }
 
+  // Main application layout
   return (
     <Box 
       style={{
@@ -76,6 +95,7 @@ function App() {
       overflow="hidden"
     >
       <PanelGroup direction="horizontal">
+        {/* File Explorer Panel */}
         <Panel defaultSize={20} minSize={10} maxSize={40}>
           <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
             <FileExplorer />
@@ -83,13 +103,15 @@ function App() {
         </Panel>
 
         <ResizeHandle />
-
+      
+        {/* Main Editor and Console Panel */} 
         <Panel>
           <Box h="100%" display="flex" flexDirection="column">
             <Box h="40px">
               <TopBar toggleLLM={() => setIsLLMOpen(!isLLMOpen)} isLLMOpen={isLLMOpen} />
             </Box>
 
+            {/* Editor and Console Area */}
             <Box flex="1">
               <PanelGroup direction="vertical">
                 <Panel defaultSize={75}>
@@ -107,7 +129,7 @@ function App() {
             </Box>
           </Box>
         </Panel>
-
+        {/* Optional AI Assistant Panel */}
         {isLLMOpen && (
           <>
             <ResizeHandle />

@@ -8,7 +8,16 @@ import {
 import React from 'react'
 import SearchInput from './SearchInput';
 
+
+/**
+ * LLMExplorer component that serves as a container for the AI chat interface.
+ * Provides a full-height container for the SearchInput component with proper spacing.
+ * 
+ * @component
+ * @returns {JSX.Element} A container box with the SearchInput component
+ */
 export const LLMExplorer = () => {
+    // Theme context hook for color mode
     const { colorMode } = useColorMode()
     return (
         <Box

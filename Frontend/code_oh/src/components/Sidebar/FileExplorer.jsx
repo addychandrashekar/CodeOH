@@ -17,7 +17,11 @@ import { LANGUAGE_ICONS } from '../../services/languageVersions';
 
 
 
-
+/**
+ * 
+ * @param {Object} item - The file or folder node to render
+ * @returns  A file item component that displays a file or folder in the file explorer
+ */
 const FileItem = ({ item, depth = 0 }) => {
   const { colorMode } = useColorMode();
   const { setActiveFile, activeFile } = useFiles();
