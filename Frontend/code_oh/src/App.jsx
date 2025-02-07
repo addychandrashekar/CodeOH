@@ -7,7 +7,7 @@ import { TopBar } from './components/Toolbar/TopBar'
 import { ConsoleOutput } from './components/Console/ConsoleOutput'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Loader from './components/Loading/Loader'
-import { LOADINGTIMER } from './constants/loadingtimer'
+import { THEME_CONFIG } from './configurations/config'
 
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
@@ -32,12 +32,10 @@ function App() {
   useEffect(() => {
     // Set a timer to hide the loader after LOADINGTIMER  seconds
     const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, LOADINGTIMER )
-
-    // Cleanup the timer if component unmounts
+        setIsLoading(false)
+    }, THEME_CONFIG.LOADING_TIMER)
     return () => clearTimeout(timer)
-  }, [])
+}, [])
 
 
   /**
@@ -114,7 +112,7 @@ function App() {
             {/* Editor and Console Area */}
             <Box flex="1">
               <PanelGroup direction="vertical">
-                <Panel defaultSize={75}>
+                <Panel defaultSize={60}>
                   <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
                     <CodeEditor />
                   </Box>
@@ -122,7 +120,7 @@ function App() {
 
                 <HorizontalResizeHandle />
 
-                <Panel defaultSize={25} minSize={10} maxSize={90}>
+                <Panel defaultSize={40} minSize={10} maxSize={90}>
                   <ConsoleOutput />
                 </Panel>
               </PanelGroup>

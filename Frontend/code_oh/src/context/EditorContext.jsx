@@ -3,8 +3,7 @@ import { executeCode } from '../services/PistonAPI'
 import { useToast } from '@chakra-ui/react'
 import { LANGUAGE_VERSIONS } from '../services/languageVersions'
 import { useFiles } from '../context/FileContext'
-import { WELCOME_ASCII } from '../services/languageVersions'
-import { AUTHOR } from '../services/languageVersions'
+import { WELCOME_ASCII, AUTHOR} from '../configurations/config'
 
 /**
  * Context for managing editor state and functionality

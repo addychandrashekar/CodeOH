@@ -8,6 +8,7 @@ import { CODE_SNIPPETS } from '../../services/languageVersions'
 import { useEffect } from 'react'
 import { useEditor } from '../../context/EditorContext'
 import { configureEditor } from '../../services/syntax&IntelliSense'
+import { THEME_CONFIG } from '../../configurations/config'
 
 /**
  * CodeEditor component that provides a Monaco-based code editor with language support
@@ -85,6 +86,8 @@ export const CodeEditor = () => {
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
                     padding: { top: 10 },
+                    fontSize: THEME_CONFIG.EDITOR_FONT_SIZE,
+                    fontFamily: THEME_CONFIG.FONT_FAMILY,
                     // Enable advanced editor features
                     bracketPairColorization: { enabled: true }, // Enable bracket pair colorization
                     guides: {

@@ -89,29 +89,3 @@ export const LANGUAGE_ICONS = {
 //     // file: 'https://cdn-icons-png.flaticon.com/512/633/633624.png'
 // }
 
-export const WELCOME_ASCII =
-`
-                            ▄████▄   ▒█████  ▓█████▄ ▓█████     ▒█████   ██░ ██ 
-                            ▒██▀ ▀█  ▒██▒  ██▒▒██▀ ██▌▓█   ▀    ▒██▒  ██▒▓██░ ██▒
-                            ▒▓█    ▄ ▒██░  ██▒░██   █▌▒███      ▒██░  ██▒▒██▀▀██░
-                            ▒▓▓▄ ▄██▒▒██   ██░░▓█▄   ▌▒▓█  ▄    ▒██   ██░░▓█ ░██ 
-                            ▒ ▓███▀ ░░ ████▓▒░░▒████▓ ░▒████▒   ░ ████▓▒░░▓█▒░██▓
-                            ░ ░▒ ▒  ░░ ▒░▒░▒░  ▒▒▓  ▒ ░░ ▒░ ░   ░ ▒░▒░▒░  ▒ ░░▒░▒
-                            ░  ▒     ░ ▒ ▒░  ░ ▒  ▒  ░ ░  ░     ░ ▒ ▒░  ▒ ░▒░ ░
-                            ░        ░ ░ ░ ▒   ░ ░  ░    ░      ░ ░ ░ ▒   ░  ░░ ░
-                            ░ ░          ░ ░     ░       ░  ░       ░ ░   ░  ░  ░
-                            ░                  ░                                 
-Welcome to Code-oh! This is a simple online code editor that supports multiple programming languages.
-Use command \`author$\` to know more about the authors.
-Use command \`help\` to get started.
-    `
-
-export const AUTHOR = 
-    `
-               Authors:
-            * Adewale Adenle
-            * Shristi Keshri
-            * Xiaoxing Chen
-            * Adithya Chandrashekar
-            * Shriram Ravishankar
-    `
