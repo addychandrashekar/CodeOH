@@ -1,7 +1,20 @@
 import { Box, Code, HStack, IconButton, useColorMode, Image, Spacer } from '@chakra-ui/react'
 import { useEditor } from '../../context/EditorContext'
 
+
+/**
+ * TopBar component that provides the main toolbar interface for the application.
+ * Contains the application title, code execution button, and AI assistant toggle.
+ * Integrates with EditorContext for code execution and theme management.
+ * 
+ * @component
+ * @param {Object} props - Component props
+ * @param {Function} props.toggleLLM - Function to toggle the AI assistant panel
+ * @param {boolean} props.isLLMOpen - Current state of the AI assistant panel
+ * @returns {JSX.Element} A toolbar with application controls
+ */
 export const TopBar = ({ toggleLLM, isLLMOpen }) => {
+    // Theme and editor context hooks
     const { colorMode } = useColorMode()
     const { runCode, isLoading } = useEditor()
     
@@ -15,8 +28,11 @@ export const TopBar = ({ toggleLLM, isLLMOpen }) => {
             px={4}
         >
             <HStack spacing={4} width="100%">
+                {/* Application title */}
                 <Code fontSize="md">Code-OH</Code>
                 <Spacer />
+
+                {/* Code execution button */}
                 <IconButton
                     icon={
                         <span 
@@ -39,6 +55,8 @@ export const TopBar = ({ toggleLLM, isLLMOpen }) => {
                         bg: colorMode === 'dark' ? 'gray.700' : 'gray.200'
                     }}
                 />
+                
+                {/* AI Assistant toggle button */}
                 <IconButton
                     icon={
                         <Image 

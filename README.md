@@ -2,6 +2,8 @@
 
 A modern web-based code editor with integrated AI assistance.
 
+<img src="image1.png" alt="Estimation Visualization" height="500" width="900">
+
 <img src="image.png" alt="Estimation Visualization" height="500" width="900">
 
 <img src="error.png" alt="Estimation Visualization" height="500" width="900">
@@ -11,6 +13,8 @@ A modern web-based code editor with integrated AI assistance.
 <img src="LLM.png" alt="Estimation Visualization" height="500" width="900">
 
 <img src="intellisense.png" alt="Estimation Visualization" height="500" width="900">
+
+<img src="main.png" alt="Estimation Visualization" height="500" width="900">
 
 ## Features
 

@@ -5,7 +5,12 @@ import 'primereact/resources/primereact.min.css';         // Core CSS
 import 'primeicons/primeicons.css';                      // Icons
 
 
-
+/**
+ * Context for managing file state across the application
+ * 
+ * @type {React.Context}
+ * @returns {Object} The context object for file state management
+ */
 const FileContext = createContext();
 
 export const useFiles = () => {

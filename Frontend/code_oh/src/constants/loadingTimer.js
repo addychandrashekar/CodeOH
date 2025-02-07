@@ -1,0 +1,1 @@
+export const LOADINGTIMER = 5000;

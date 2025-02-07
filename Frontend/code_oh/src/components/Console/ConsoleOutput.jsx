@@ -1,12 +1,28 @@
 import { Box, Text, Input, VStack, useColorMode } from '@chakra-ui/react'
 import { useEditor } from '../../context/EditorContext'
 import { useState, useRef, useEffect } from 'react'
+
+
+/**
+ * ConsoleOutput component that provides a terminal-like interface for command input and output display.
+ * Supports different types of entries (input, error, output) with appropriate styling.
+ * Integrates with the EditorContext for command handling and history management.
+ * 
+ * @component
+ * @returns {JSX.Element} A console interface with command history and input field
+ */
 export const ConsoleOutput = () => {
+    // Theme and editor context hooks
     const { colorMode } = useColorMode()
     const { handleConsoleInput, consoleHistory } = useEditor()
+    // Local state for input management
     const [inputValue, setInputValue] = useState('')
     const inputRef = useRef(null)
 
+    /**
+     * Handles keyboard input events, specifically the Enter key for command submission
+     * @param {React.KeyboardEvent} e - The keyboard event object
+     */
     const handleKeyPress = async (e) => {
         if (e.key === 'Enter') {
             if (handleConsoleInput) {
@@ -16,11 +32,19 @@ export const ConsoleOutput = () => {
         }
     }
 
+    // Auto-scroll to the latest input when history updates
     useEffect(() => {
         inputRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [consoleHistory])
 
+    /**
+     * Determines the style for different types of console entries
+     * @param {Object} entry - The console entry object
+     * @param {('input'|'error'|'output')} entry.type - The type of console entry
+     * @returns {Object} Style object for the entry
+     */
     const getEntryStyle = (entry) => {
+        // Base styling for all entry types
         const baseStyle = {
             whiteSpace: "pre-wrap",
             fontFamily: "monospace",
@@ -29,7 +53,7 @@ export const ConsoleOutput = () => {
             borderRadius: "4px",
             marginBottom: "2px"
         }
-
+        // Apply specific styles based on entry type
         switch (entry.type) {
             case 'input':
                 return {
@@ -62,6 +86,7 @@ export const ConsoleOutput = () => {
             overflowY="auto"
         >
             <VStack align="stretch" spacing={1}>
+                {/* Display console history entries */}
                 {consoleHistory.map((entry, index) => (
                     <Text 
                         key={index} 
@@ -75,7 +100,7 @@ export const ConsoleOutput = () => {
                         ) : entry.content}
                     </Text>
                 ))}
-
+                {/* Command input field */}
                 <Input
                     ref={inputRef}
                     value={inputValue}
