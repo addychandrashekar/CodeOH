@@ -13,6 +13,7 @@ import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { Tree } from 'primereact/tree';
 import { useFiles } from '../../context/FileContext';
 import { LANGUAGE_ICONS } from '../../services/languageVersions';
+import { THEME_CONFIG } from '../../configurations/config';
 
 
 
@@ -33,9 +34,10 @@ const FileItem = ({ item, depth = 0 }) => {
     <HStack
       p={1}
       w="full" // 👈 Ensures item spans the entire width
-      bg={isActive ? (colorMode === 'dark' ? 'gray.700' : 'gray.200') : bgColor}
+      bg={isActive ? (colorMode === 'dark' ? THEME_CONFIG.DARK.HOVER : THEME_CONFIG.LIGHT.HOVER) : 
+        (colorMode === 'dark' ? THEME_CONFIG.DARK.BACKGROUND : THEME_CONFIG.LIGHT.BACKGROUND)}
       _hover={{
-        bg: colorMode === 'dark' ? 'gray.700' : 'gray.200'
+        bg: colorMode === 'dark' ? THEME_CONFIG.DARK.HOVER : THEME_CONFIG.LIGHT.HOVER
       }}
       cursor="pointer"
       onClick={() => setActiveFile({
@@ -45,7 +47,11 @@ const FileItem = ({ item, depth = 0 }) => {
       className="file-item"
     >
       {getNodeIcon(item)}
-      <Text color={colorMode === 'dark' ? 'white' : 'black'}>
+      <Text 
+        color={colorMode === 'dark' ? THEME_CONFIG.DARK.TEXT : THEME_CONFIG.LIGHT.TEXT}
+        fontSize={THEME_CONFIG.FILENAME_FONT_SIZE}
+        fontFamily={THEME_CONFIG.FONT_FAMILY}
+      >
         {item.label}
       </Text>
       <IconButton
@@ -54,7 +60,7 @@ const FileItem = ({ item, depth = 0 }) => {
         variant="ghost"
         onClick={(e) => {
           e.stopPropagation();
-          // Implement delete functionality here
+          // TODO : Implement delete functionality here
         }}
         color={colorMode === 'dark' ? 'white' : 'black'}
       />
@@ -285,24 +291,26 @@ export const FileExplorer = () => {
       {/* New File Creation Input */}
       {isCreating && (
         <Box px={2}>
-          <Input
-            size="sm"
-            placeholder="filename.ext"
-            value={newFileName}
-            onChange={(e) => setNewFileName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                const fileName = newFileName.includes('.')
-                  ? newFileName
-                  : `${newFileName}.txt`;
-                handleCreateFile(fileName);
-                setNewFileName('');
-                setIsCreating(false);
-              }
-            }}
-            color={colorMode === 'dark' ? 'white' : 'black'}
-            bg={colorMode === 'dark' ? 'gray.700' : 'white'}
-          />
+        <Input
+          size="sm"
+          placeholder="filename.ext"
+          value={newFileName}
+          onChange={(e) => setNewFileName(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              const fileName = newFileName.includes('.')
+                ? newFileName
+                : `${newFileName}.txt`;
+              handleCreateFile(fileName);
+              setNewFileName('');
+              setIsCreating(false);
+            }
+          }}
+          color={colorMode === 'dark' ? THEME_CONFIG.DARK.TEXT : THEME_CONFIG.LIGHT.TEXT}
+          bg={colorMode === 'dark' ? THEME_CONFIG.DARK.SECONDARY_BG : THEME_CONFIG.LIGHT.SECONDARY_BG}
+          fontSize={THEME_CONFIG.FILENAME_FONT_SIZE}
+          fontFamily={THEME_CONFIG.FONT_FAMILY}
+        />
         </Box>
       )}
 
@@ -319,7 +327,10 @@ export const FileExplorer = () => {
         }
         showLines={true}
         pt={{
-            root: { className: 'w-full border-none bg-gray-800 dark:bg-gray-800' }, // Full tree background
+            root: { 
+              className: `w-full border-none ${colorMode === 'dark' ? 'bg-gray-800' : 'bg-white'}`,
+              style: { fontSize: THEME_CONFIG.FILENAME_FONT_SIZE, fontFamily: THEME_CONFIG.FONT_FAMILY }
+            }, // Full tree background
             container: { className: 'p-0 m-0 bg-gray-800 dark:bg-gray-800' }, // Fixes white space
             node: { className: 'p-0 m-0 bg-gray-800 dark:bg-gray-800' }, // Fixes node wrappers
             content: ({ context }) => ({
