@@ -8,6 +8,7 @@ import { ConsoleOutput } from './components/Console/ConsoleOutput'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Loader from './components/Loading/Loader'
 import { THEME_CONFIG } from './configurations/config'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
@@ -77,13 +78,24 @@ function App() {
         justifyContent="center"
         bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}
       >
-        <Loader />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <Loader />
+        </motion.div>
       </Box>
     )
   }
 
   // Main application layout
   return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
     <Box 
       style={{
         opacity: isLoading ? 0 : 1,
@@ -128,18 +140,29 @@ function App() {
           </Box>
         </Panel>
         {/* Optional AI Assistant Panel */}
-        {isLLMOpen && (
-          <>
-            <ResizeHandle />
-            <Panel defaultSize={20} minSize={10} maxSize={40}>
-              <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
-                <LLMExplorer />
-              </Box>
-            </Panel>
-          </>
-        )}
+        <AnimatePresence>
+          {isLLMOpen && (
+            <>
+              <ResizeHandle />
+              <Panel defaultSize={20} minSize={20} maxSize={40}>
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 50 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ height: '100%' }}
+                >
+                  <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
+                    <LLMExplorer />
+                  </Box>
+                </motion.div>
+              </Panel>
+            </>
+          )}
+        </AnimatePresence>
       </PanelGroup>
-    </Box>
+      </Box>
+    </motion.div>
   )
 }
 
