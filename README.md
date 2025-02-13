@@ -38,3 +38,18 @@ Ensure your PostgreSQL database is properly configured in database.py before run
 Here are the available API endpoints:
 
 ![API Endpoints](description.png)
+
+
+
+## Example demo
+Here is the demo of checking users variable in Supabase
+![Example demo](Supabase.png)
+
+Here is the demo of http://127.0.0.1:8000/docs
+![Example demo](docs.png)
+
+Here is the demo of http://127.0.0.1:8000
+![Example demo](8000.png)
+
+Here is the demo of http://127.0.0.1:8000/users
+![Example demo](users.png)
