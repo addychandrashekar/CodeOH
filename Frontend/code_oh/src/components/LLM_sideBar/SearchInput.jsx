@@ -11,14 +11,13 @@ import '../../styles/searchInput.css';
  */
 const SearchInput = () => {
   return (
-    <div className="wrapper">
-      <div className="container_chat_bot">
+      <div className="container_chat_bot flex flex-grow">
         {/* Main chat container with glow effect */}
-        <div className="container-chat-options">
-          <div className="glow" />
+        <div className="container-chat-options flex flex-grow min-h-0">
+          <div className="glow " />
           <div className="chat">
             {/* Text input area */}
-            <div className="chat-bot">
+            <div className="chat-bot flex-grow">
               <textarea 
                 id="chat_bot" 
                 name="chat_bot" 
@@ -27,7 +26,7 @@ const SearchInput = () => {
               />
             </div>
             {/* Action buttons container */}
-            <div className="options">
+            <div className="options h-full">
               {/* Utility buttons (attach, add, globe) */}
               <div className="btns-add">
                 {/* Attachment button */}
@@ -81,7 +80,6 @@ const SearchInput = () => {
           <span>More</span>
         </div>
       </div>
-    </div>
   );
 }
 

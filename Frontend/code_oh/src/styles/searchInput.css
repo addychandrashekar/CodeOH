@@ -17,6 +17,7 @@
   width: 100%;
   min-width: 260px;
   max-width: 100%;
+  height: 100%;
 }
 
 .container_chat_bot .container-chat-options {
@@ -45,6 +46,21 @@
   opacity: 0.6;
   overflow: hidden;
   z-index: 0;
+}
+
+
+.input-section {
+  background-color: #010201;
+}
+
+.chat-section {
+  background-color: #101010;
+}
+
+
+.llm-bubble {
+  background-color: rgb(47, 46, 66);
+  color: #fff;
 }
 
 .glow::before {
@@ -195,7 +211,7 @@
 }
 
 .container_chat_bot .tags {
-  padding: 14px 0;
+  padding-top: 16px;
   display: flex;
   color: #ffffff;
   font-size: 10px;
@@ -208,6 +224,7 @@
   background-color: #1b1b1b;
   border: 1.5px solid #363636;
   border-radius: 10px;
+  margin-right: 5px;
   cursor: pointer;
   user-select: none;
 }
