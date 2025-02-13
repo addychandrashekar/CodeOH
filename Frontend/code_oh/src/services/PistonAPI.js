@@ -8,7 +8,8 @@ import axios from 'axios';
 import { LANGUAGE_VERSIONS } from './languageVersions';
 
 const API = axios.create({
-    baseURL: 'http://localhost:2000/api/v2'
+    // baseURL: 'http://localhost:2000/api/v2'
+    baseURL: 'https://emkc.org/api/v2/piston'
 });
 
 // Check installed packages
