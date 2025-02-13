@@ -1,4 +1,5 @@
 
+@import "tailwindcss";
 
 /* Remove padding & borders from the tree */
 .p-tree {
