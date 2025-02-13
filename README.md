@@ -14,14 +14,22 @@ Features
 
 Setup Instructions
 1. Run the following command to install required Python packages:
+pip install --user fastapi uvicorn sqlalchemy bcrypt psycopg2 pydantic
+
+
+Note: Ensure that `pip` is correctly pointing to Python 3 before running the installation command. If unsure, use:
 python3 -m pip install --user fastapi uvicorn sqlalchemy bcrypt psycopg2 pydantic
 
+
 2. To run the FastAPI server:
+uvicorn main:app --reload
+
+Note: Ensure that `pip` is correctly pointing to Python 3 before running the installation command. If unsure, use:
 python3 -m uvicorn main:app --reload
 
-3. Then, open http://127.0.0.1:8000/docs to test APIs using Swagger UI.
+4. Then, open http://127.0.0.1:8000/docs to test APIs using Swagger UI.
 
-4. Database Connection
+5. Database Connection
 Ensure your PostgreSQL database is properly configured in database.py before running the server.
 
 
