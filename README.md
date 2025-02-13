@@ -29,4 +29,4 @@ Ensure your PostgreSQL database is properly configured in database.py before run
 
 Here are the available API endpoints:
 
-![API Endpoints](fastapi/description.png)
+![API Endpoints](description.png)
