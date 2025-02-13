@@ -21,13 +21,8 @@ python3 -m uvicorn main:app --reload
 Ensure your PostgreSQL database is properly configured in database.py before running the server.
 
 
-Method	        Endpoint	                    Description
-GET	            /users	                        Retrieve all users
-GET	            /users/{user_id}	            Retrieve a single user
-POST	        /users	                        Create a new user
-DELETE	        /users/{user_id}	            Delete a user
-GET	            /projects	                    Retrieve all projects
-POST	        /projects	                    Create a new project
-DELETE	        /projects/{id}	                Delete a project
-POST	        /files	                        Upload a file
-GET	            /db-check	                    Check database connection
+## API Endpoints
+
+Here are the available API endpoints:
+
+![API Endpoints](fastapi/description.png)
