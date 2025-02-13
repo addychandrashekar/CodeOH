@@ -1,9 +1,13 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
-DATABASE_URL = "postgresql://postgres.qxgwfvulnkcqzewziffj:Ob5uFY3IpK5u9TOT@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require"
-
+# Get DATABASE_URL from environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(
     DATABASE_URL,
