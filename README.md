@@ -41,6 +41,15 @@ Here are the available API endpoints:
 
 
 
+For Delete
+After run the FastAPI, and use 'curl -X 'GET' 'http://127.0.0.1:8000/users' ' to get all user info.
+Then use 'curl -X 'DELETE' 'http://127.0.0.1:8000/users/47653704-ac88-4666-b17b-15ac004953a6' '. 
+(47653704-ac88-4666-b17b-15ac004953a6) is user id.
+If delete successful, it return "{"message": "User deleted"}"
+
+
+
+
 ## Example demo
 Here is the demo of checking users variable in Supabase
 ![Example demo](Supabase.png)
