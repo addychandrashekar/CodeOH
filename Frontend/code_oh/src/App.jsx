@@ -9,6 +9,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Loader from './components/Loading/Loader'
 import { THEME_CONFIG } from './configurations/config'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
@@ -26,18 +27,40 @@ import 'primeicons/primeicons.css';
 function App() {
   const { colorMode } = useColorMode()
   const [isLLMOpen, setIsLLMOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingContent, setIsLoading] = useState(true)
 
+  const { 
+    isLoading,
+    isAuthenticated,
+    login,
+    // register,
+    user
+  } = useKindeAuth();
 
   // Initialize loading state
   useEffect(() => {
     // Set a timer to hide the loader after LOADINGTIMER  seconds
     const timer = setTimeout(() => {
         setIsLoading(false)
-    }, THEME_CONFIG.LOADING_TIMER)
+    // }, THEME_CONFIG.LOADING_TIMER)
+    }, 0)
     return () => clearTimeout(timer)
-}, [])
+    
+  }, [])
 
+  useEffect(() => {
+
+    if (isLoading)
+      return;
+
+    if (!isAuthenticated) {
+      login();
+    }
+    
+  }, [isLoading, isAuthenticated]);
+
+  // view user id
+  console.log(user?.id);
 
   /**
    * Vertical resize handle component for panel resizing
@@ -68,7 +91,7 @@ function App() {
   )
 
   // Show loader while loading
-  if (isLoading) {
+  if (isLoadingContent) {
     return (
       <Box 
         h="100vh" 
@@ -98,7 +121,7 @@ function App() {
     >
     <Box 
       style={{
-        opacity: isLoading ? 0 : 1,
+        opacity: isLoadingContent ? 0 : 1,
         transition: 'opacity 0.5s ease-in-out'
       }}
       h="100vh" 
