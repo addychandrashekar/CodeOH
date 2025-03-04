@@ -13,11 +13,9 @@ def generate_llm_response(context, user_message):
     ### Response:
     Return all relevant code snippets found in the context. Each snippet should be clearly separated, followed by a short one-line explanation.
     """
-
-    # Initialize the Gemini model
     model = genai.GenerativeModel("gemini-1.5-flash-002")
 
-    # Send the prompt to Gemini to generate the response
+    #send the prompt to gemini and get back the response
     response = model.generate_content(prompt)
     content = response.candidates[0].content
     parts = content.parts
