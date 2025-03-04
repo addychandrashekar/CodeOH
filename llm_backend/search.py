@@ -8,6 +8,6 @@ def search_code(query_embedding, match_threshold=0.5):
     results = query_supabase_for_embeddings(query_embedding, match_threshold=match_threshold)
 
     context_list = []
-    for result in results: context_list.append(f"File: {result["file_name"]}\nCode: {result["code_snippet"]}\n")
+    for result in results: context_list.append(f"File: {result['file_name']}\nCode: {result['code_snippet']}\n")
     
     return "\n".join(context_list)
