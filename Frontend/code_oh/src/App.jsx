@@ -37,16 +37,6 @@ function App() {
     user
   } = useKindeAuth();
 
-  // Initialize loading state
-  useEffect(() => {
-    // Set a timer to hide the loader after LOADINGTIMER  seconds
-    const timer = setTimeout(() => {
-        setIsLoading(false)
-    // }, THEME_CONFIG.LOADING_TIMER)
-    }, 0)
-    return () => clearTimeout(timer)
-    
-  }, [])
 
   useEffect(() => {
 
@@ -55,6 +45,10 @@ function App() {
 
     if (!isAuthenticated) {
       login();
+    }
+
+    if (isAuthenticated) {
+      setIsLoading(false);
     }
     
   }, [isLoading, isAuthenticated]);
