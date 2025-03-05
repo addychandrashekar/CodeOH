@@ -29,12 +29,6 @@ async def chat_with_llm(request: dict):
 
     return {"response": llm_response}
 
-from fastapi import APIRouter
-from llm_backend.database import store_embedding_in_supabase  # Assuming this function is already implemented
-from llm_backend.embedding import generate_embedding  # Function to generate embeddings
-
-router = APIRouter()
-
 @router.post("/addToDB")
 async def add_to_db(request: dict):
     """
