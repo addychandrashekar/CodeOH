@@ -19,15 +19,20 @@ async def chat_with_llm(request: dict):
     
         message will just be a string which contains message such as "find me all of code related to authentication"
     """
-    user_message = request.get("user_message")
+    
+    try:
+        user_message = request.get("user_message")
 
-    query_embedding = generate_embedding(user_message)
+        query_embedding = generate_embedding(user_message)
 
-    context = search_code(query_embedding)
+        context = search_code(query_embedding)
 
-    llm_response = generate_llm_response(context, user_message)
+        llm_response = generate_llm_response(context, user_message)
 
-    return {"response": llm_response}
+        return {"response": llm_response}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 @router.post("/addToDB")
 async def add_to_db(request: dict):
