@@ -3,7 +3,6 @@
 //  For connecting to the Piston API
 // baseURL: 'https://emkc.org/api/v2/piston'
     
-
 import axios from 'axios';
 import { LANGUAGE_VERSIONS } from './languageVersions';
 
@@ -12,19 +11,6 @@ const API = axios.create({
     baseURL: 'https://emkc.org/api/v2/piston'
 });
 
-// Check installed packages
-const checkPackages = async () => {
-    try {
-        const response = await API.get('/packages');
-        console.log('Currently installed packages:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Failed to check packages:', error.response?.data || error.message);
-        return [];
-    }
-};
-
-// Fetch available runtimes from the API
 const getRuntimes = async () => {
     try {
         const response = await API.get('/runtimes');
@@ -55,24 +41,27 @@ export const executeCode = async (language, sourceCode) => {
             const importMatches = sourceCode.match(/^(?:from|import)\s+(\w+)/gm) || [];
             console.log('Found imports:', importMatches);
             
+            // Modified setup code to use the correct Python path
             const setupCode = `
 import os
 import site
 import sys
 
-package_path = '/piston/packages/python/libs'
-if os.path.exists(package_path):
-    site.addsitedir(package_path)
-    sys.path.insert(0, package_path)
+# Add site-packages directory to Python path
+site_packages = '/piston/packages/python/${versions.python}/lib/python3.9/site-packages'
+if os.path.exists(site_packages):
+    site.addsitedir(site_packages)
+    sys.path.insert(0, site_packages)
 `;
             sourceCode = setupCode + '\n' + sourceCode;
             
+            // Install required packages
             for (const match of importMatches) {
                 const pkg = match.split(/\s+/)[1];
                 if (!['sys', 'os', 'math', 'time', 'random', 'site'].includes(pkg)) {
                     console.log(`Installing package: ${pkg}`);
                     try {
-                        await installPackage(pkg, 'pip');
+                        await installPackage(pkg, 'pip', versions.python);
                         console.log(`Successfully installed ${pkg}`);
                     } catch (error) {
                         console.error(`Failed to install ${pkg}:`, error);
@@ -83,6 +72,21 @@ if os.path.exists(package_path):
         }
 
         console.log('Executing code with version:', versions[language]);
+        // const response = await API.post('/execute', {
+        //     language: language,
+        //     version: versions[language],
+        //     files: [{
+        //         name: `code.${language}`,
+        //         content: sourceCode
+        //     }],
+        //     stdin: "",
+        //     args: [],
+        //     compile_timeout: 10000,
+        //     run_timeout: 3000,
+        //     env: {
+        //         "PYTHONPATH": `/piston/packages/python/${versions.python}/lib/python3.9/site-packages`
+        //     }
+        // });
         const response = await API.post('/execute', {
             language: language,
             version: versions[language],
@@ -94,18 +98,11 @@ if os.path.exists(package_path):
             args: [],
             compile_timeout: 10000,
             run_timeout: 3000,
-            env: {
-                "PYTHONPATH": "/piston/packages/python/libs"
-            }
+            compile_memory_limit: -1,
+            run_memory_limit: -1,
+            // Add network access flag
+            network_disabled: false
         });
-
-        if (response.data.run) {
-            if (response.data.run.stderr) {
-                console.error('Execution stderr:', response.data.run.stderr);
-            }
-            console.log('Execution stdout:', response.data.run.stdout);
-        }
-        
         return response.data;
     } catch (error) {
         console.error('Code execution failed:', error.response?.data || error);
@@ -113,12 +110,13 @@ if os.path.exists(package_path):
     }
 };
 
-const installPackage = async (packageName, packageType) => {
+const installPackage = async (packageName, packageType, version) => {
     try {
-        console.log(`Attempting to install ${packageName} using ${packageType}`);
+        console.log(`Installing ${packageName} for Python ${version}`);
         const response = await API.post('/install-package', {
             package: packageName,
-            type: packageType
+            type: packageType,
+            version: version
         });
         return response.data;
     } catch (error) {

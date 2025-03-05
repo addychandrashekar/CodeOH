@@ -10,7 +10,7 @@ import Loader from './components/Loading/Loader'
 import { THEME_CONFIG } from './configurations/config'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-
+import { BACKEND_API_URL } from './services/BackendServices'
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
 import 'primeicons/primeicons.css';
@@ -33,25 +33,36 @@ function App() {
     isLoading,
     isAuthenticated,
     login,
-    // register,
+
     user
   } = useKindeAuth();
 
 
   useEffect(() => {
-
-    if (isLoading)
-      return;
+    if (isLoading) return;
 
     if (!isAuthenticated) {
       login();
-    }
-
-    if (isAuthenticated) {
+    } else if (isAuthenticated && user?.id) {
       setIsLoading(false);
+      
+      // use the backend api in the backend services file
+      fetch(`${BACKEND_API_URL}/api/auth/user`, {  // backend URL
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }), // Send user ID
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("User ID sent successfully:", data);
+      })
+      .catch(error => {
+        console.error("Error sending user ID:", error);
+      });
     }
-    
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, user]);
 
   // view user id
   console.log(user?.id);
