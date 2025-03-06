@@ -1,6 +1,7 @@
 import google.generativeai as genai
 
 def generate_llm_response(context, user_message):
+    print(context)
     prompt = f"""
     You are assisting a developer inside a code editor. Given the following project context, return all relevant code snippets related to the user's query in a concise, developer-friendly way.
 
