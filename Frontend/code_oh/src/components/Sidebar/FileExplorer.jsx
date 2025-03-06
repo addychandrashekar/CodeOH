@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   VStack,
@@ -14,337 +14,523 @@ import { Tree } from 'primereact/tree';
 import { useFiles } from '../../context/FileContext';
 import { LANGUAGE_ICONS } from '../../services/languageVersions';
 import { THEME_CONFIG } from '../../configurations/config';
+import { BACKEND_API_URL } from '../../services/BackendServices';
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 
 
-
+const handleSignOut = () => {
+  logout(); // trigger the Kinde sign-out process
+};
+/**
+ * Generates icons for folders and files
+ */
+const getNodeIcon = (node) => {
+  if (node.children?.length > 0) {
+    return <i className="pi pi-folder-open" style={{ color: 'orange', marginRight: '5px' }} />;
+  }
+  const extension = node.label.split('.').pop();
+  return LANGUAGE_ICONS[extension] ? (
+    <img src={LANGUAGE_ICONS[extension]} alt={extension} style={{ width: '16px', height: '16px', marginRight: '5px' }} />
+  ) : (
+    <i className="pi pi-file" style={{ marginRight: '5px' }} />
+  );
+};
 
 /**
- * 
- * @param {Object} item - The file or folder node to render
- * @returns  A file item component that displays a file or folder in the file explorer
+ * Processes uploaded files & folders into a tree structure
  */
-const FileItem = ({ item, depth = 0 }) => {
+const buildFolderTree = (fileList) => {
+  const root = [];
+
+  const readFileContent = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        console.log(`Read file ${file.name}, content length: ${content.length}`);
+        console.log(`First 50 chars: ${content.substring(0, 50)}...`);
+        resolve(content);
+      };
+      reader.onerror = (error) => {
+        console.error(`Error reading file ${file.name}:`, error);
+        reject(error);
+      };
+      reader.readAsText(file);
+    }).catch(error => {
+      console.error(`Failed to read file ${file.name}:`, error);
+      return ""; // Return empty string on error, but log it
+    });
+  };
+
+  const processFile = async (file) => {
+    const content = await readFileContent(file);
+    console.log(`Processing file ${file.name}, content length: ${content.length}`);
+    
+    const pathParts = file.webkitRelativePath
+      ? file.webkitRelativePath.split('/')
+      : file.name.split('/');
+    let currentLevel = root;
+    let cumulativePath = '';
+
+    pathParts.forEach((part, index) => {
+      cumulativePath = cumulativePath ? `${cumulativePath}/${part}` : part;
+
+      let node = currentLevel.find((item) => item.label === part);
+      if (!node) {
+        node = { 
+          key: cumulativePath, 
+          label: part, 
+          children: [], 
+          data: {
+            content: index === pathParts.length - 1 ? content : null,
+            isDirectory: index !== pathParts.length - 1,
+            fileType: index === pathParts.length - 1 ? part.split('.').pop() : null
+          } 
+        };
+        currentLevel.push(node);
+      }
+
+      currentLevel = node.children;
+    });
+  };
+  return Promise.all(Array.from(fileList).map(processFile)).then(() => root);
+};
+
+const FileItem = ({ item }) => {
   const { colorMode } = useColorMode();
   const { setActiveFile, activeFile } = useFiles();
-  
+  const { user } = useKindeAuth();
+  const toast = useToast();
   const isActive = activeFile?.name === item.label;
-  const bgColor = colorMode === 'dark' ? 'gray.800' : 'white';
+
+  const handleFileClick = async () => {
+    try {
+      // Only fetch content if it's a file (not a directory)
+      if (!item.children?.length) {
+        console.log('File clicked:', {
+          item,
+          key: item.key,
+          userId: user?.id,
+          isDirectory: !!item.children?.length
+        });
+        
+        // Make sure we have both item.key and user.id
+        if (!item.key || !user?.id) {
+          console.error('Missing required data:', { itemKey: item.key, userId: user?.id });
+          return;
+        }
+
+        // Remove any quotes or extra spaces from the key
+        const cleanKey = item.key.replace(/['"]/g, '').trim();
+        console.log('Making request to:', `${BACKEND_API_URL}/api/files/${cleanKey}/content?userId=${user.id}`);
+
+        const response = await fetch(
+          `${BACKEND_API_URL}/api/files/${cleanKey}/content?userId=${user.id}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        console.log('Response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('File content received:', {
+            contentLength: data.content ? data.content.length : 0,
+            preview: data.content ? data.content.substring(0, 100) + '...' : 'Empty content',
+            fileType: data.fileType
+          });
+          
+          // If content is empty but we should have content, log a warning
+          if (!data.content || data.content.length === 0) {
+            console.warn('Warning: File content is empty!', { fileId: cleanKey, fileName: item.label });
+          }
+          
+          setActiveFile({
+            name: item.label,
+            content: data.content || '',
+            fileType: item.data.fileType || data.fileType
+          });
+          
+          console.log('Active file set:', {
+            name: item.label,
+            contentLength: (data.content || '').length,
+            fileType: item.data.fileType || data.fileType,
+            firstChars: data.content ? data.content.substring(0, 50) + '...' : 'Empty content'
+          });
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error response:', errorData);
+          
+          toast({
+            title: "Error",
+            description: `Failed to load file content: ${errorData.detail || response.statusText}`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error loading file content:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load file content: " + error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   return (
     <HStack
       p={1}
-      w="full" // 👈 Ensures item spans the entire width
-      bg={isActive ? (colorMode === 'dark' ? THEME_CONFIG.DARK.HOVER : THEME_CONFIG.LIGHT.HOVER) : 
-        (colorMode === 'dark' ? THEME_CONFIG.DARK.BACKGROUND : THEME_CONFIG.LIGHT.BACKGROUND)}
-      _hover={{
-        bg: colorMode === 'dark' ? THEME_CONFIG.DARK.HOVER : THEME_CONFIG.LIGHT.HOVER
-      }}
+      w="full"
+      bg={isActive ? THEME_CONFIG.DARK.HOVER : THEME_CONFIG.DARK.BACKGROUND}
+      _hover={{ bg: THEME_CONFIG.DARK.HOVER }}
       cursor="pointer"
-      onClick={() => setActiveFile({
-        name: item.label,
-        content: item.data.content
-      })}
-      className="file-item"
+      onClick={handleFileClick}
     >
       {getNodeIcon(item)}
-      <Text 
-        color={colorMode === 'dark' ? THEME_CONFIG.DARK.TEXT : THEME_CONFIG.LIGHT.TEXT}
-        fontSize={THEME_CONFIG.FILENAME_FONT_SIZE}
-        fontFamily={THEME_CONFIG.FONT_FAMILY}
-      >
+      <Text fontSize={THEME_CONFIG.FILENAME_FONT_SIZE} fontFamily={THEME_CONFIG.FONT_FAMILY}>
         {item.label}
       </Text>
       <IconButton
         size="xs"
         icon={<DeleteIcon />}
         variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          // TODO : Implement delete functionality here
-        }}
-        color={colorMode === 'dark' ? 'white' : 'black'}
+        onClick={(e) => e.stopPropagation()} // Implement delete functionality
       />
     </HStack>
   );
 };
 
+/**
+ * Recursively processes files/folders into a format suitable for the backend
+ */
+const processFileTree = (nodes, parentFolderId = null) => {
+  let folders = [];
+  let files = [];
 
-// ---------------------
-// 1) Build a nested tree from uploaded files
-// ---------------------
-const buildFolderTree = (fileList) => {
-  /*
-    We store tree nodes in this structure:
-      {
-        key: string (unique path),
-        label: string (folder or file name),
-        children: [],
-        icon: [optional primeReact icon or your own icon],
-        data: { content? } or additional info
-      }
-  */
-  const root = []; // top-level array
-  const lookup = {}; // helps us find existing nodes quickly
-
-  Array.from(fileList).forEach((file) => {
-    const pathParts = file.webkitRelativePath
-      ? file.webkitRelativePath.split('/')
-      : file.name.split('/'); // fallback if no webkitRelativePath
-    let currentLevel = root;
-    let cumulativePath = '';
-
-    pathParts.forEach((part, index) => {
-      cumulativePath = cumulativePath
-        ? `${cumulativePath}/${part}`
-        : part; // build up the path incrementally
-
-      // Check if node already exists at this level
-      let node = currentLevel.find((item) => item.label === part);
-
-      if (!node) {
-        node = {
-          key: cumulativePath, // full path
-          label: part,
-          children: [],
-          data: {},
-        };
-        currentLevel.push(node);
-      }
-
-      // If it's the last part (i.e. the actual file), let's store file content
-      if (index === pathParts.length - 1 && file.size !== undefined) {
-        node.data.file = file;
-      }
-
-      // Move deeper
-      currentLevel = node.children;
-    });
+  nodes.forEach((node) => {
+    if (node.children?.length > 0) {
+      let folderData = { name: node.label, parentFolderId };
+      folders.push(folderData);
+      let processed = processFileTree(node.children, folderData.name);
+      folders = [...folders, ...processed.folders];
+      files = [...files, ...processed.files];
+    } else {
+      console.log(`Processing file for upload: ${node.label}, content length: ${node.data.content?.length || 0}`);
+      files.push({
+        filename: node.label,
+        content: node.data.content || "",
+        folderName: parentFolderId,
+        fileType: node.data.fileType
+      });
+    }
   });
 
-  return root;
-};
-
-// 2) Generate icons for each node (folder or file)
-const getNodeIcon = (node) => {
-  // If node has children, it's a folder
-  if (node.children && node.children.length > 0) {
-    return <i className="pi pi-folder-open" style={{ color: 'orange', marginRight: '5px' }} />;
-  }
-  
-  // Otherwise it's a file, get icon based on extension
-  const extension = node.label.split('.').pop();
-  if (LANGUAGE_ICONS[extension]) {
-    return <img 
-      src={LANGUAGE_ICONS[extension]} 
-      alt={extension} 
-      style={{ 
-        width: '16px', 
-        height: '16px', 
-        marginRight: '5px' 
-      }} 
-    />;
-  }
-  
-  // Default file icon if no specific icon found
-  return <i className="pi pi-file" style={{ marginRight: '5px' }} />;
-};
-
-// 3) Custom node template for the PrimeReact Tree
-//    This replicates your FileItem design
-const nodeTemplate = (node, options) => {
-  const depth = options.props?.depth || 0;
-  return <FileItem item={node} depth={depth} />;
+  return { folders, files };
 };
 
 export const FileExplorer = () => {
   const { colorMode } = useColorMode();
-  const { files, setFiles } = useFiles(); 
+  const { files, setFiles } = useFiles();
   const [isCreating, setIsCreating] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const toast = useToast();
+  const { user , logout} = useKindeAuth();
 
-  // ---------------------
-  // 4) Handle folder/files upload
-  // ---------------------
+  const fetchAndUpdateFiles = async () => {
+    try {
+      const response = await fetch(`${BACKEND_API_URL}/api/files?userId=${user?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Extract the children from the default project
+        const filesWithoutDefault = data.files?.[0]?.children || [];
+        setFiles(filesWithoutDefault);
+      } else {
+        console.error("Error fetching files");
+      }
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+    }
+  };
+  /**
+   * Fetch stored files and folders from the backend
+   */
+  useEffect(() => {
+    if (user?.id) fetchAndUpdateFiles();
+  }, [user?.id]);
+
+  const shouldSkipFile = (file) => {
+      // List of binary file extensions to skip
+      const skipPatterns = [
+          // Binary files
+          '.zip', '.pdf', '.doc', '.docx', '.xls', '.xlsx',
+          '.ppt', '.pptx', '.exe', '.dll', '.so', '.dylib',
+          '.jar', '.war', '.ear', '.class', '.pyc',
+          
+          // Wandb specific files
+          '.wandb',        // wandb binary files
+          'wandb-metadata.json',  // wandb metadata
+          'wandb-summary.json',   // wandb summary
+          'debug.log',     // wandb logs
+          'debug-internal.log',   // wandb internal logs
+          
+          // System and cache files
+          '.DS_Store',
+          'Thumbs.db',
+          '.git',
+          '__pycache__',
+          '*.pyc',
+          
+          // Other common binary or large files
+          '.pkl',          // pickle files
+          '.npy', '.npz',  // numpy binary files
+          '.pt', '.pth',   // PyTorch model files
+          '.h5', '.hdf5',  // HDF5 files
+          '.bin',          // generic binary files
+          '.data',         // generic data files
+          '.index',        // index files
+          '.pb'           // protocol buffer files
+      ];
+
+
+      // Function to check if a file matches any pattern
+      const matchesPattern = (filename, pattern) => {
+          if (pattern.startsWith('.')) {
+              // Extension match
+              return filename.toLowerCase().endsWith(pattern);
+          } else if (pattern.includes('*')) {
+              // Wildcard match
+              const regex = new RegExp('^' + pattern.replace('*', '.*') + '$');
+              return regex.test(filename);
+          } else {
+              // Exact match
+              return filename === pattern;
+          }
+      };
+
+      // Check if file should be skipped
+      const shouldSkip = skipPatterns.some(pattern => matchesPattern(file.name, pattern));
+      
+      if (shouldSkip) {
+          console.log(`Skipping file: ${file.name} (matches skip pattern)`);
+          return true;
+      }
+
+      // Additional check: Try to detect binary content in the first few bytes
+      // This is a more thorough way to detect binary files
+      return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const bytes = new Uint8Array(e.target.result);
+              // Check first 32 bytes for null bytes or other binary indicators
+              for (let i = 0; i < Math.min(32, bytes.length); i++) {
+                  if (bytes[i] === 0) { // Found null byte
+                      console.log(`Skipping file: ${file.name} (contains binary data)`);
+                      resolve(true);
+                      return;
+                  }
+              }
+              resolve(false);
+          };
+          reader.onerror = () => resolve(true); // Skip on error
+          reader.readAsArrayBuffer(file.slice(0, 32)); // Read only first 32 bytes
+      });
+  };
+  /**
+   * Handles uploading folders & files to the backend
+   */
+
   const handleFileUpload = async (event) => {
     const fileList = event.target.files;
     if (!fileList?.length) return;
 
-    // Build the new folder tree from uploaded items
-    const newTree = buildFolderTree(fileList);
+    try {
+      console.log(`Processing ${fileList.length} files`);
+      
+      // Show loading toast
+      const loadingToast = toast({
+        title: "Uploading files...",
+        description: "Please wait while your files are being processed",
+        status: "loading",
+        duration: null,
+        isClosable: false,
+      });
 
-    // For reading each file’s text content, we do it asynchronously
-    // so we can store it in data.content if you want.
-    // (Optional: if you need text, do the reading here)
-    for (let node of newTree) {
-      await readAllChildFiles(node);
-    }
+      // Create a map of filenames to their actual File objects for easier lookup
+      const fileMap = {};
+      
+      // Process files and check which ones should be skipped
+      const fileChecks = await Promise.all(Array.from(fileList).map(async file => {
+        const shouldSkip = await shouldSkipFile(file);
+        if (!shouldSkip) {
+          const path = file.webkitRelativePath || file.name;
+          fileMap[path] = file;
+          fileMap[file.name] = file;
+        }
+        return { file, shouldSkip };
+      }));
 
-    // Merge the newly uploaded tree with existing 'files' if needed
-    // (If you want to keep everything in one big tree, you can do a merge.
-    //  Otherwise, you can just add them. For simplicity, we'll just append.)
-    setFiles((prev) => [...prev, ...newTree]);
+      // Filter out skipped files
+      const validFiles = fileChecks
+        .filter(({ shouldSkip }) => !shouldSkip)
+        .map(({ file }) => file);
 
-    toast({
-      title: 'Folder/files uploaded successfully!',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
-  };
+      console.log(`Found ${validFiles.length} valid files to process`);
+      
+      const fileTree = await buildFolderTree(validFiles);
+      const { folders, files: filesToProcess } = processFileTree(fileTree);
 
-  // A helper to read all child files and store text in `data.content`
-  const readAllChildFiles = async (node) => {
-    if (node.data.file) {
-      // It's a file node
-      try {
-        const content = await fileToText(node.data.file);
-        node.data.content = content;
-      } catch (e) {
-        console.error('Error reading file', e);
-      }
-    }
-    // Recursively handle children if it's a folder
-    if (node.children?.length) {
-      for (let child of node.children) {
-        await readAllChildFiles(child);
-      }
-    }
-  };
+      // Read all file contents directly
+      const filesToUpload = await Promise.all(filesToProcess.map(async fileData => {
+        const filePath = fileData.folderName
+          ? `${fileData.folderName}/${fileData.filename}`
+          : fileData.filename;
+        const actualFile = fileMap[filePath] || fileMap[fileData.filename];
+        
+        if (!actualFile) {
+          console.log(`Skipping file: ${fileData.filename} (not found in map)`);
+          return null;
+        }
 
-  // Simple util to read a file as text
-  const fileToText = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        resolve(evt.target.result);
+        try {
+          const content = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error(`Error reading file: ${e.target.error}`));
+            reader.readAsText(actualFile);
+          });
+          
+          console.log(`Successfully read file ${fileData.filename}, content length: ${content.length}`);
+          return {
+            filename: fileData.filename,
+            content: content,
+            folderName: fileData.folderName || null,
+            fileType: fileData.filename.split('.').pop() || ''
+          };
+        } catch (error) {
+          console.error(`Failed to read file ${fileData.filename}:`, error);
+          return null;
+        }
+      }));
+
+      // Filter out null entries (skipped files)
+      const validFilesToUpload = filesToUpload.filter(file => file !== null);
+
+      const payload = {
+        userId: user?.id,
+        folders: folders.map(folder => ({
+          name: folder.name,
+          parentFolderId: folder.parentFolderId || null
+        })),
+        files: validFilesToUpload
       };
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
-  };
+        
+      const response = await fetch(`${BACKEND_API_URL}/api/files/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-  // ---------------------
-  // 5) Create a blank file at top-level
-  // ---------------------
-  const handleCreateFile = (filename) => {
-    const fileNode = {
-      key: filename,
-      label: filename,
-      data: { content: '' },
-      children: [],
-    };
+      // Close loading toast
+      toast.close(loadingToast);
 
-    setFiles([...files, fileNode]);
-  };
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Upload response:", data);
+        
+        // Immediately fetch and update the file structure
+        await fetchAndUpdateFiles();
 
-  // ---------------------
-  // 6) Render
-  // ---------------------
+        toast({ 
+          title: "Upload successful!", 
+          description: `Successfully uploaded ${validFilesToUpload.length} files`,
+          status: "success", 
+          duration: 3000, 
+          isClosable: true 
+        });
+      } else {
+        const errorData = await response.json();
+        console.error("Upload error:", errorData);
+        toast({ 
+          title: "Upload failed", 
+          description: errorData.message || "An error occurred during upload",
+          status: "error", 
+          duration: 3000, 
+          isClosable: true 
+        });
+      }
+    } catch (error) {
+      console.error("Failed to process upload:", error);
+      toast({ 
+        title: "Upload failed", 
+        description: "An error occurred while processing the files",
+        status: "error", 
+        duration: 3000, 
+        isClosable: true 
+      });
+    }
+  };    
+        
   return (
-    <VStack
-      align="stretch"
-      spacing={4}
-      h="100%"
-      bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-      color={colorMode === 'dark' ? 'white' : 'black'}
-    >
-      {/* Header Bar */}
+    <VStack align="stretch" spacing={4} h="100%" bg={colorMode === 'dark' ? 'gray.800' : 'white'}>
       <HStack justify="space-between" p={2}>
-        <Text fontSize="sm" fontWeight="bold">
-          EXPLORER
-        </Text>
+        <Text fontSize="sm" fontWeight="bold">EXPLORER</Text>
         <HStack spacing={2}>
-          {/* Upload Folder & File Input */}
-          <Input
-            type="file"
-            multiple
-            display="none"
-            id="file-upload"
-            // webkitdirectory allows selecting a folder,
-            // but also works for files. Chrome-based only.
-            webkitdirectory="true"
-            onChange={handleFileUpload}
-          />
+          <Input type="file" multiple display="none" id="file-upload" webkitdirectory="true" onChange={handleFileUpload} />
           <label htmlFor="file-upload">
-            <IconButton
-              padding={2}
-              size="xs"
-              as="span"
-              icon={<i className="pi pi-file-import" style={{ color: 'white', marginRight: '5px' }} />}
-              color={colorMode === 'dark' ? 'white' : 'black'}
-              _hover={{ cursor: 'pointer' }}
-            />
+            <IconButton size="xs" as="span" icon={<i className="pi pi-file-import" style={{ color: 'white', marginRight: '5px' }} />} _hover={{ cursor: 'pointer' }} />
           </label>
-
-          {/* Button to create a new file */}
-          <IconButton
-            padding={2}
-            size="xs"
-            icon={<i className="pi pi-file-plus" style={{ color: 'white', marginRight: '5px' }} />}
-            onClick={() => setIsCreating(true)}
-            color={colorMode === 'dark' ? 'white' : 'black'}
-          />
+          <IconButton size="xs" icon={<i className="pi pi-file-plus" style={{ color: 'white', marginRight: '5px' }} />} onClick={() => setIsCreating(true)} />
         </HStack>
       </HStack>
 
-      {/* New File Creation Input */}
       {isCreating && (
         <Box px={2}>
-        <Input
-          size="sm"
-          placeholder="filename.ext"
-          value={newFileName}
-          onChange={(e) => setNewFileName(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              const fileName = newFileName.includes('.')
-                ? newFileName
-                : `${newFileName}.txt`;
-              handleCreateFile(fileName);
-              setNewFileName('');
-              setIsCreating(false);
-            }
-          }}
-          color={colorMode === 'dark' ? THEME_CONFIG.DARK.TEXT : THEME_CONFIG.LIGHT.TEXT}
-          bg={colorMode === 'dark' ? THEME_CONFIG.DARK.SECONDARY_BG : THEME_CONFIG.LIGHT.SECONDARY_BG}
-          fontSize={THEME_CONFIG.FILENAME_FONT_SIZE}
-          fontFamily={THEME_CONFIG.FONT_FAMILY}
-        />
+          <Input
+            size="sm"
+            placeholder="filename.ext"
+            value={newFileName}
+            onChange={(e) => setNewFileName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                setFiles([...files, { key: newFileName, label: newFileName, data: { content: '' }, children: [] }]);
+                setNewFileName('');
+                setIsCreating(false);
+              }
+            }}
+          />
         </Box>
       )}
 
-      {/* File/Folder Tree Display */}
       <Box flex="1" overflowY="auto">
-        {/* 
-           Use the PrimeReact Tree to show your nested structure.
-           We pass a custom nodeTemplate to replicate the previous item style.
-        */}
         <Tree
-        value={files}
-        nodeTemplate={(node, options) =>
-            nodeTemplate(node, { ...options, props: { colorMode, depth: options.level } })
-        }
-        showLines={true}
-        pt={{
-            root: { 
-              className: `w-full border-none ${colorMode === 'dark' ? 'bg-gray-800' : 'bg-white'}`,
-              style: { fontSize: THEME_CONFIG.FILENAME_FONT_SIZE, fontFamily: THEME_CONFIG.FONT_FAMILY }
-            }, // Full tree background
-            container: { className: 'p-0 m-0 bg-gray-800 dark:bg-gray-800' }, // Fixes white space
-            node: { className: 'p-0 m-0 bg-gray-800 dark:bg-gray-800' }, // Fixes node wrappers
-            content: ({ context }) => ({
-            className: `transition-colors bg-gray-800 dark:bg-gray-800
-                ${context.selected ? 'bg-primary-50' : 'hover:bg-gray-700'}
-                border-none rounded-none`
-            }),
-            treenode: { className: 'bg-gray-800 dark:bg-gray-800' }, // Fixes white toggle area
-            toggler: { className: 'bg-transparent dark:bg-transparent text-white' }, // Fix caret background
-            emptyMessage: { className: 'bg-gray-800 dark:bg-gray-800 text-gray-400 text-center' } // Fixes empty state
-        }}
+          value={files}
+          nodeTemplate={(node, options) => <FileItem item={node} />}
+          showLines
         />
+      </Box>
 
-
+      {/* Add the sign out button at the bottom */}
+      <Box p={2} borderTop="1px" borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}>
+        <HStack 
+          w="full" 
+          p={2} 
+          cursor="pointer"
+          _hover={{ bg: THEME_CONFIG.DARK.HOVER }}
+          onClick={() => logout()}
+          borderRadius="md"
+        >
+          <i className="pi pi-sign-out" style={{ color: colorMode === 'dark' ? 'white' : 'black' }} />
+          <Text fontSize="sm">Sign Out</Text>
+        </HStack>
       </Box>
     </VStack>
   );
