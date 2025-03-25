@@ -20,7 +20,7 @@ def generate_llm_response(context, user_message):
     content = response.candidates[0].content
     parts = content.parts
     text = parts[0].text
-
+    
     print(response)
 
     return {"text": text}

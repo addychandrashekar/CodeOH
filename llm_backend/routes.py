@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Query
-from search import search_code
-from embedding import generate_embedding
-from llm_response import generate_llm_response
-from database import store_embedding_in_supabase
-from embedding import generate_embedding
+from .search import search_code
+from .embedding import generate_embedding
+from .llm_response import generate_llm_response
+from .database import store_embedding_in_supabase
 
-router = APIRouter()
+llm_router = APIRouter()
 
-@router.post("/chat")
+@llm_router.post("/chat")
 async def chat_with_llm(request: dict):
     """
     Handles the user query, retrieves context from Supabase, and sends it to LLM to generate a response.
@@ -34,7 +33,7 @@ async def chat_with_llm(request: dict):
     except Exception as e:
         return {"error": str(e)}
 
-@router.post("/addToDB")
+@llm_router.post("/addToDB")
 async def add_to_db(request: dict):
     """
     Takes in file_name and code_snippet, generates an embedding, and adds it to the database.
