@@ -37,6 +37,7 @@ def generate_llm_response(context, user_message):
     - Return only relevant Python code snippets, each in its own markdown code block.
     - Before each snippet, display the file name it came from in bold using this format: **File: filename.py**
     - Each snippet must be followed by a one-line explanation written outside the code block.
+    - Leave one blank line between each code snippet section to improve readability.
     - Return all the code snippets as they appear in the context.
     - Do NOT embed explanations inside the code.
     - Use valid markdown syntax (```python ... ```) and close all blocks properly.
