@@ -29,5 +29,7 @@ def query_supabase_for_embeddings(user_id, query_embedding, match_threshold=0.5)
         "query_embedding": query_embedding,
         "match_threshold": match_threshold,
     }).execute()
+
+    print("supabase response.data", response.data)
     
     return response.data
