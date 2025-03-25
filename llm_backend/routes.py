@@ -21,10 +21,11 @@ async def chat_with_llm(request: dict):
     
     try:
         user_message = request.get("user_message")
+        user_id = request.get("user_id")
 
         query_embedding = generate_embedding(user_message)
 
-        context = search_code(query_embedding)
+        context = search_code(user_id, query_embedding)
 
         llm_response = generate_llm_response(context, user_message)
 
@@ -41,6 +42,7 @@ async def add_to_db(request: dict):
     try:
         file_name = request.get("file_name")
         code_snippet = request.get("code_snippet")
+        user_id = request.get("user_id")
 
         #make sure both file name and code is provided
         if not file_name or not code_snippet:
@@ -50,7 +52,7 @@ async def add_to_db(request: dict):
         embedding = generate_embedding(code_snippet)
 
         #store the data in Supabase
-        store_embedding_in_supabase(file_name, code_snippet, embedding)
+        store_embedding_in_supabase(user_id, file_name, code_snippet, embedding)
 
         return {"message": "Code snippet added successfully", "file_name": file_name}
 
