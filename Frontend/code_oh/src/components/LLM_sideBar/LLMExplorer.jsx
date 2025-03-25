@@ -88,7 +88,9 @@ export const LLMExplorer = ({ userId }) => {
             >
                 {msg.type === 'llm' ? (
                 // LLM message -> render Markdown
-                <MarkdownRenderer content={msg.text} />
+                <div className="markdown-block">
+                  <MarkdownRenderer content={msg.text} />
+                </div>
                 ) : (
                 // User message -> just plain text
                 <p>{msg.text}</p>

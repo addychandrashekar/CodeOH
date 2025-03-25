@@ -228,3 +228,8 @@
   cursor: pointer;
   user-select: none;
 }
+
+.markdown-block p,
+.markdown-block pre {
+  margin-bottom: 1rem; /* adds visual spacing */
+}
