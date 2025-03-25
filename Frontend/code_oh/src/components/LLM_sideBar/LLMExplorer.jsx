@@ -1,115 +1,112 @@
-import { Box, useColorMode, IconButton } from '@chakra-ui/react'
-import { ArrowUpWideNarrow } from "lucide-react";
+import { Box, useColorMode } from '@chakra-ui/react';
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import "../../styles/searchInput.css";
-import React, { useState } from 'react'
-
-import 'primereact/resources/themes/saga-blue/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
-
-
+import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import SearchInput from './SearchInput';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 
+const MarkdownRenderer = ({ content }) => (
+  <ReactMarkdown
+    children={content}
+    components={{
+      code({ node, inline, className, children, ...props }) {
+        const match = /language-(\w+)/.exec(className || '');
+        return !inline && match ? (
+          <SyntaxHighlighter language={match[1]} PreTag="div" {...props}>
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
+        ) : (
+          <code className={className} {...props}>
+            {children}
+          </code>
+        );
+      }
+    }}
+  />
+);
 
-/**
- * LLMExplorer component that serves as a container for the AI chat interface.
- * Provides a full-height container for the SearchInput component with proper spacing.
- * 
- * @component
- * @returns {JSX.Element} A container box with the SearchInput component
- */
 export const LLMExplorer = () => {
-    // Theme context hook for color mode
-    const { colorMode } = useColorMode()
+  const { colorMode } = useColorMode();
 
-    const HorizontalResizeHandle = () => (
-        <PanelResizeHandle
-            style={{
-                height: '4px',
-                background: colorMode === 'dark' ? '#2D3748' : '#E2E8F0',
-                cursor: 'row-resize'
-            }}
-        />
-    )
+  // State to track chat messages
+  const [messages, setMessages] = useState([]);
+  const chatEndRef = useRef(null);
 
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
-    return (
-        <PanelGroup direction="vertical">
-            <Panel defaultSize={75} minSize={20} maxSize={90}>
-                <div className="overflow-y-auto styled-wrapper w-full h-full flex flex-col chat-section p-4">
+  const HorizontalResizeHandle = () => (
+    <PanelResizeHandle
+      style={{
+        height: '4px',
+        background: colorMode === 'dark' ? '#2D3748' : '#E2E8F0',
+        cursor: 'row-resize'
+      }}
+    />
+  );
 
-                    <div className="llm-bubble w-fit max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5 ml-auto">
-                        <p>How does a car engine work?</p>
-                    </div>
+  // Function passed to SearchInput to handle sending user messages
+  const handleSendMessage = async (userMessage) => {
+    if (!userMessage.trim()) return;
 
-                    <div className="llm-bubble w-auto max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5">
-                        <span className='font-bold'>Model</span>
-                        <div className='my-1'></div>
-                        <hr className=""></hr>
-                        <div className='my-3'></div>
-                        <p>A car engine works by converting fuel into mechanical energy through a process called internal combustion. Inside the engine, fuel mixes with air and is ignited by a spark, creating small explosions that push pistons. These pistons move up and down, turning the crankshaft, which ultimately powers the wheels of the car. The entire process happens repeatedly in a controlled sequence, allowing the vehicle to move efficiently.</p>
-                    </div>
+    console.log("Reached here??")
 
+    // Optimistically add user message to chat
+    const newMessages = [...messages, { type: 'user', text: userMessage }];
+    setMessages(newMessages);
 
-                    <div className="llm-bubble w-fit max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5 ml-auto">
-                        <p>How does a car engine work?</p>
-                    </div>
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/chat', {
+        user_message: userMessage,
+      });
 
-                    <div className="llm-bubble w-auto max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5">
-                        <span className='font-bold'>Model</span>
-                        <div className='my-1'></div>
-                        <hr className=""></hr>
-                        <div className='my-3'></div>
-                        <p>A car engine works by converting fuel into mechanical energy through a process called internal combustion. Inside the engine, fuel mixes with air and is ignited by a spark, creating small explosions that push pistons. These pistons move up and down, turning the crankshaft, which ultimately powers the wheels of the car. The entire process happens repeatedly in a controlled sequence, allowing the vehicle to move efficiently.</p>
-                    </div>
+      const llmReply = res.data.response;
+      setMessages([...newMessages, { type: 'llm', text: llmReply.text || llmReply }]);
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages([...newMessages, { type: 'llm', text: '⚠️ Error from LLM response' }]);
+    }
+  };
 
+  return (
+    <PanelGroup direction="vertical">
+      <Panel defaultSize={75} minSize={20} maxSize={90}>
+        <div className="overflow-y-auto styled-wrapper w-full h-full flex flex-col chat-section p-4">
+        {messages.map((msg, idx) => (
+            <div
+                key={idx}
+                className={`llm-bubble ${
+                msg.type === 'user' ? 'ml-auto w-fit' : 'w-auto'
+                } max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5`}
+            >
+                {msg.type === 'llm' ? (
+                // LLM message -> render Markdown
+                <MarkdownRenderer content={msg.text} />
+                ) : (
+                // User message -> just plain text
+                <p>{msg.text}</p>
+                )}
+            </div>
+            ))}
+            
+            <div ref={chatEndRef} />
+        </div>
+      </Panel>
 
-                    <div className="llm-bubble w-fit max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5 ml-auto">
-                        <p>How does a car engine work?</p>
-                    </div>
+      <HorizontalResizeHandle />
 
-                    <div className="llm-bubble w-auto max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5">
-                        <span className='font-bold'>Model</span>
-                        <div className='my-1'></div>
-                        <hr className=""></hr>
-                        <div className='my-3'></div>
-                        <p>A car engine works by converting fuel into mechanical energy through a process called internal combustion. Inside the engine, fuel mixes with air and is ignited by a spark, creating small explosions that push pistons. These pistons move up and down, turning the crankshaft, which ultimately powers the wheels of the car. The entire process happens repeatedly in a controlled sequence, allowing the vehicle to move efficiently.</p>
-                    </div>
-
-
-                    <div className="llm-bubble w-fit max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5 ml-auto">
-                        <p>How does a car engine work?</p>
-                    </div>
-
-                    <div className="llm-bubble w-auto max-w-[80%] bg-gray-600 text-white p-3 rounded-lg mb-5">
-                        <span className='font-bold'>Model</span>
-                        <div className='my-1'></div>
-                        <hr className=""></hr>
-                        <div className='my-3'></div>
-                        <p>A car engine works by converting fuel into mechanical energy through a process called internal combustion. Inside the engine, fuel mixes with air and is ignited by a spark, creating small explosions that push pistons. These pistons move up and down, turning the crankshaft, which ultimately powers the wheels of the car. The entire process happens repeatedly in a controlled sequence, allowing the vehicle to move efficiently.</p>
-                    </div>
-
-
-                </div>
-            </Panel>
-
-            <HorizontalResizeHandle />
-
-            <Panel defaultSize={25} minSize={29} maxSize={50} className="input-section">
-                <div className="resizable-section p-2 h-full flex">
-
-                    <Box
-                        h="100%"
-                        w="100%"
-                        p={4}
-                    >
-                        <SearchInput />
-                    </Box>
-
-                </div>
-            </Panel>
-        </PanelGroup>
-    );
-
-}
+      <Panel defaultSize={25} minSize={29} maxSize={50} className="input-section">
+        <div className="resizable-section p-2 h-full flex">
+          <Box h="100%" w="100%" p={4}>
+            <SearchInput onSend={handleSendMessage} />
+          </Box>
+        </div>
+      </Panel>
+    </PanelGroup>
+  );
+};
