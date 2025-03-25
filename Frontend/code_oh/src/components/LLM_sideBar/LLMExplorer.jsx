@@ -6,6 +6,7 @@ import axios from 'axios';
 import SearchInput from './SearchInput';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { BACKEND_API_URL } from '../../services/BackendServices';
 
 const MarkdownRenderer = ({ content }) => (
   <ReactMarkdown
@@ -27,7 +28,7 @@ const MarkdownRenderer = ({ content }) => (
   />
 );
 
-export const LLMExplorer = () => {
+export const LLMExplorer = ({ userId }) => {
   const { colorMode } = useColorMode();
 
   // State to track chat messages
@@ -61,8 +62,9 @@ export const LLMExplorer = () => {
     setMessages(newMessages);
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/chat', {
+      const res = await axios.post(`${BACKEND_API_URL}/chat`, {
         user_message: userMessage,
+        user_id: userId
       });
 
       const llmReply = res.data.response;
