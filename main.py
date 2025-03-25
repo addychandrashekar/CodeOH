@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any, ForwardRef
 from uuid import UUID
+from llm_backend.routes import llm_router
 
 app = FastAPI()
 
@@ -26,6 +27,8 @@ Base.metadata.create_all(bind=engine)
 
 FRONTEND_URL = "http://localhost:5173"
 
+#include all of the routers created so it routes correctly
+app.include_router(llm_router)
 
 @app.get("/")
 def read_root():
