@@ -19,6 +19,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional, Dict, Any, ForwardRef
 from uuid import UUID
 from llm_backend.routes import llm_router
+from llm_backend.search import search_code
+from llm_backend.embedding import generate_embedding
+from llm_backend.llm_response import generate_llm_response
+from llm_backend.database import store_embedding_in_supabase
 
 app = FastAPI()
 
@@ -200,6 +204,7 @@ def upload_file(file: FileCreate, db: Session = Depends(get_db)):
     db.add(new_file)
     db.commit()
     db.refresh(new_file)
+
     return FileResponse.model_validate(new_file)
 
 
@@ -508,6 +513,12 @@ def upload_files(request: FileUploadRequest, db: Session = Depends(get_db)):
             )
             db.add(new_file)
             db.flush()
+
+            #generate the embedding for the content
+            embedding = generate_embedding(content)
+
+            #store the data in Supabase
+            store_embedding_in_supabase(request.userId, file_data["filename"], content, embedding)
 
             print(f"Created file with ID: {new_file.id}")
             print(f"Saved content length: {len(new_file.content or '')}")
