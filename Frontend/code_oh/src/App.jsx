@@ -181,7 +181,7 @@ function App() {
                   style={{ height: '100%' }}
                 >
                   <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
-                    <LLMExplorer />
+                    <LLMExplorer userId={user?.id}/>
                   </Box>
                 </motion.div>
               </Panel>
