@@ -1,6 +1,6 @@
 import { Box } from '@chakra-ui/react'
 import { Editor } from '@monaco-editor/react'
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useState } from 'react'
 import { useRef } from 'react'
 import { useFiles } from '../../context/FileContext'
@@ -9,6 +9,9 @@ import { useEffect } from 'react'
 import { useEditor } from '../../context/EditorContext'
 import { configureEditor } from '../../services/syntax&IntelliSense'
 import { THEME_CONFIG } from '../../configurations/config'
+import _, {debounce} from 'lodash';
+import { BACKEND_API_URL } from '../../services/BackendServices';
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 
 /**
  * CodeEditor component that provides a Monaco-based code editor with language support
@@ -20,13 +23,15 @@ import { THEME_CONFIG } from '../../configurations/config'
  */
 export const CodeEditor = () => {
     // Editor reference for direct manipulation
-    const editorRef = useRef()
+    const tempEditorRef = useRef()
     // Local state for editor content
     const [value, setValue] = useState('')
+    const [docState, setDocState] = useState(null);
     // Editor context for language and reference management
-    const { setEditorRef, language, setLanguage } = useEditor() 
+    const { editorRef, setEditorRef, language, setLanguage } = useEditor() 
     // File context for active file management
     const { activeFile } = useFiles()
+    const { user } = useKindeAuth();
 
     /**
      * Handles the editor initialization when it mounts
@@ -34,7 +39,7 @@ export const CodeEditor = () => {
      * @param {import('monaco-editor').editor.IStandaloneCodeEditor} monaco - The Monaco API object
      */
     const handleEditorDidMount = (editor, monaco) => {
-        editorRef.current = editor
+        tempEditorRef.current = editor
         setEditorRef(editor)
         configureEditor(editor, monaco, language)
         editor.focus()
@@ -46,8 +51,54 @@ export const CodeEditor = () => {
             const newLanguage = getLanguageFromExtension(fileExtension)
             setLanguage(newLanguage)
             setValue(activeFile.content || CODE_SNIPPETS[newLanguage] || '')
+            setDocState(activeFile);
+        } else {
+            setValue('');
+            setDocState(null);
         }
     }, [activeFile])
+
+    const handleAutoSave = async (docState) => {
+
+        if (!docState)
+          return;
+    
+        const payload = {
+          content: docState.content
+        };
+                
+        // Remove any quotes or extra spaces from the key
+        //  const cleanKey = activeFile. .key.replace(/['"]/g, '').trim();
+         console.log('Making request to:', `${BACKEND_API_URL}/api/files/${docState.key}/content?userId=${user.id}`);
+    
+         const response = await fetch(
+           `${BACKEND_API_URL}/api/files/${docState.key}/content?userId=${user.id}`,
+            {
+              method: 'POST',
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }
+         );
+    
+          if (!response.ok) {
+            console.warn("File didn't save properly");
+          } else {
+            console.log("saved file");
+          }
+      };
+        
+
+    const debouncedSave = useCallback(
+        debounce((docState) => {
+            handleAutoSave(docState);
+        }, 250),
+        []
+      );
+
+
+    useEffect(() => {
+        debouncedSave(docState);
+    }, [docState]);
 
     /**
      * Maps file extensions to Monaco editor language identifiers
@@ -70,6 +121,12 @@ export const CodeEditor = () => {
     }
 
 
+    const handleContentChange = (content) => {
+        setDocState(prevState => ({
+            ...prevState, 
+            content: content
+        }));
+    };
 
     return (
         <Box h="100%" overflow="hidden">
@@ -78,7 +135,8 @@ export const CodeEditor = () => {
                 theme="vs-dark"
                 language={language}
                 value={value}
-                onChange={(newValue) => setValue(newValue)}
+                // onChange={(newValue) => setValue(newValue)}
+                onChange={handleContentChange}
                 onMount={handleEditorDidMount}
                 options={{
                     lineNumbers: 'on',
