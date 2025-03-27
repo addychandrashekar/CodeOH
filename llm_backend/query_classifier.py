@@ -12,7 +12,6 @@ def classify_query(query_text):
     - code_explanation: Explaining how code works
     - code_optimization: Suggesting improvements to code
     - code_generation: Creating new code based on a description
-    - test_generation: Generating test cases for methods in a file
     - general: General questions about the codebase or programming
 
     Args:
@@ -42,31 +41,25 @@ def classify_query(query_text):
             ]
         )
         or "@" in query_text
+        # Add more patterns for file creation with variations
+        or "new file called" in query_lower
+        or "new file named" in query_lower
+        or "create a new file" in query_lower
+        or "create a file" in query_lower
+        or "make a new file" in query_lower
+        or "file called" in query_lower
+        and any(
+            term in query_lower
+            for term in [
+                "create",
+                "make",
+                "write",
+                "implement",
+                "new",
+            ]
+        )
     ):  # Check for @filename syntax
         return "file_modification"
-
-    # Test case generation patterns
-    if any(
-        term in query_lower
-        for term in [
-            "test case",
-            "test cases",
-            "unit test",
-            "write test",
-            "generate test",
-            "create test",
-            "write a test",
-            "make test",
-            "test for",
-            "testing",
-        ]
-    ) and (
-        "method" in query_lower
-        or "function" in query_lower
-        or "class" in query_lower
-        or "@" in query_text
-    ):
-        return "test_generation"
 
     # Code generation patterns
     if any(

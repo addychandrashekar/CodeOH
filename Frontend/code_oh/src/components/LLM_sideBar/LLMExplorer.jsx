@@ -166,6 +166,15 @@ export const LLMExplorer = ({ userId }) => {
       
       console.log("File modification request data:", requestData);
       
+      // Add a toast to show the data being sent
+      toast({
+        title: "Sending file creation request",
+        description: `Creating ${pendingFileModification.filename} (${pendingFileModification.content.length} bytes)`,
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+      
       try {
         console.log(`Sending request to: ${BACKEND_API_URL}/apply_file_modification`);
         const res = await axios.post(`${BACKEND_API_URL}/apply_file_modification`, requestData);
@@ -175,6 +184,15 @@ export const LLMExplorer = ({ userId }) => {
         // Add success message
         const successMsg = `Successfully ${pendingFileModification.is_new_file ? 'created' : 'modified'} file: ${pendingFileModification.filename}`;
         setMessages(prev => [...prev, { type: 'llm', text: successMsg }]);
+        
+        // Show file path for debugging
+        if (res.data.path) {
+          console.log(`File created at path: ${res.data.path}`);
+          setMessages(prev => [...prev, { 
+            type: 'llm', 
+            text: `**File location:** \`${res.data.path}\`` 
+          }]);
+        }
         
         // Refresh the file list to show the new file in the UI
         console.log("Refreshing file list to show the new file");

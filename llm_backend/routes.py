@@ -8,7 +8,6 @@ from .llm_response import (
     generate_general_response,
     generate_code_implementation,
     generate_file_modification,
-    generate_test_cases,
 )
 from .database import store_embedding_in_supabase, get_repository_summary
 from .query_classifier import classify_query
@@ -38,8 +37,45 @@ def get_db():
         db.close()
 
 
+def check_and_create_projects_dir():
+    """
+    Check if the user_projects directory exists and create it if not.
+    Returns information about the directory structure for debugging.
+    """
+    current_file = os.path.abspath(__file__)
+    current_dir = os.path.dirname(current_file)
+    parent_dir = os.path.dirname(current_dir)
+    user_projects_dir = os.path.join(parent_dir, "user_projects")
+
+    info = {
+        "current_file": current_file,
+        "current_dir": current_dir,
+        "parent_dir": parent_dir,
+        "user_projects_dir": user_projects_dir,
+        "user_projects_exists": os.path.exists(user_projects_dir),
+        "cwd": os.getcwd(),
+    }
+
+    # List parent dir contents
+    parent_contents = os.listdir(parent_dir)
+    info["parent_dir_contents"] = parent_contents
+
+    # Create directory if it doesn't exist
+    if not os.path.exists(user_projects_dir):
+        try:
+            os.makedirs(user_projects_dir, exist_ok=True)
+            info["user_projects_created"] = True
+            info["user_projects_exists_after_creation"] = os.path.exists(
+                user_projects_dir
+            )
+        except Exception as e:
+            info["creation_error"] = str(e)
+
+    return info
+
+
 @llm_router.post("/chat")
-async def chat_with_llm(request: dict, db: Session = Depends(get_db)):
+async def chat_with_llm(request: dict):
     """
     Handles the user query, retrieves context from Supabase, and sends it to LLM to generate a response.
 
@@ -49,7 +85,6 @@ async def chat_with_llm(request: dict, db: Session = Depends(get_db)):
     - Code optimization: Suggest improvements to code
     - Code generation: Create new code based on natural language description
     - File modification: Modify existing files or create new files
-    - Test generation: Generate test cases for methods in a file
     - General: Answer general questions about the codebase or programming
 
     Request should contain a body with the structure:
@@ -91,44 +126,6 @@ async def chat_with_llm(request: dict, db: Session = Depends(get_db)):
             repo_summary = get_repository_summary(user_id)
             llm_response = generate_code_implementation(repo_summary, user_message)
 
-        elif query_type == "test_generation":
-            # Extract filename from message (using @filename format)
-            filename_match = re.search(r"@(\S+)", user_message)
-            if not filename_match:
-                return {
-                    "response": {
-                        "text": "Please specify a file using @filename format to generate tests for."
-                    },
-                    "query_type": query_type,
-                }
-
-            filename = filename_match.group(1)
-
-            # Get the file content from the database
-            file = (
-                db.query(File)
-                .filter(File.filename == filename, File.project.has(user_id=user_id))
-                .first()
-            )
-
-            if not file:
-                return {
-                    "response": {
-                        "text": f"File '{filename}' not found. Please check the filename and try again."
-                    },
-                    "query_type": query_type,
-                }
-
-            # Generate test cases for the file
-            llm_response = generate_test_cases(file.content, filename)
-
-            # Return the response with file_data so it can be applied if confirmed
-            return {
-                "response": llm_response,
-                "query_type": query_type,
-                "file_data": llm_response.get("file_data"),
-            }
-
         elif query_type == "file_modification":
             # Generate file modification proposal that requires user confirmation
             repo_summary = get_repository_summary(user_id)
@@ -161,8 +158,8 @@ async def chat_with_llm(request: dict, db: Session = Depends(get_db)):
 async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
     """
     Applies the file modification after user confirmation.
-    Creates or modifies files based on the user-approved content.
-    Stores files only in the database so they appear in the UI without using local storage.
+    Creates or modifies files in the database so they appear in the UI.
+    No longer creates local files to save disk space.
 
     Request should contain a body with the structure:
         {
@@ -176,14 +173,19 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
         }
     """
     try:
+        print(f"[DEBUG] ===== RECEIVED FILE MODIFICATION REQUEST =====")
+        print(f"[DEBUG] Request keys: {request.keys()}")
+
         file_data = request.get("file_data")
         user_id = request.get("user_id")
         confirmed = request.get("confirmed", False)
 
         print(f"[DEBUG] File modification request received: {file_data}")
         print(f"[DEBUG] User ID: {user_id}, Confirmed: {confirmed}")
+        print(f"[DEBUG] File data keys: {file_data.keys() if file_data else 'None'}")
 
         if not confirmed:
+            print(f"[DEBUG] Confirmation was not received, exiting")
             return {"message": "File modification cancelled by user"}
 
         if not file_data or not user_id:
@@ -214,9 +216,6 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
             content = re.sub(r"\n```$", "", content)
             print(f"[DEBUG] Content after cleanup: {len(content)} bytes")
 
-        # Add the file to the database so it appears in the UI
-        print(f"[DEBUG] Adding file to database: {filename}")
-
         # Find or create project for this user
         project = db.query(Project).filter(Project.user_id == user_id).first()
         if not project:
@@ -245,7 +244,6 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
             # Create a new file record
             file_type = filename.split(".")[-1] if "." in filename else ""
             new_file = File(
-                id=uuid.uuid4(),
                 project_id=project.id,
                 filename=filename,
                 file_type=file_type,
@@ -269,7 +267,6 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
             "filename": filename,
             "database_updated": True,
         }
-
     except Exception as e:
         print(f"[ERROR] Error in apply_file_modification endpoint: {str(e)}")
         return {"error": str(e)}
