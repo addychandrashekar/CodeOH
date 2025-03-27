@@ -216,7 +216,7 @@ def generate_general_response(repo_summary, user_message):
     return {"text": text}
 
 
-def generate_file_modification(repo_summary, user_message):
+def generate_file_modification(repo_summary, user_message, db=None, user_id=None):
     """
     Generates file modification or creation instructions based on the user's request.
     This function identifies which file to modify and what changes to make,
@@ -225,6 +225,8 @@ def generate_file_modification(repo_summary, user_message):
     Args:
         repo_summary (str): The repository context to understand existing patterns
         user_message (str): The user's request describing what file to modify
+        db (Session, optional): Database session for fetching existing file content
+        user_id (str, optional): User ID for file ownership verification
 
     Returns:
         dict: Contains file metadata and proposed changes for user confirmation
@@ -276,11 +278,50 @@ def generate_file_modification(repo_summary, user_message):
         response = model.generate_content(prompt)
         filename = response.candidates[0].content.parts[0].text.strip()
 
+    # Remove @ symbol from filename if present
+    filename = filename.lstrip("@")
+
     # Preserve original user message filename in case the prompt references it differently
     original_filename = filename
 
     # Determine if this is a new file or modification
     is_new_file = "create" in user_message.lower() or "new file" in user_message.lower()
+
+    # If modifying an existing file, try to fetch the content from the database
+    existing_content = ""
+    if not is_new_file and db and user_id:
+        try:
+            # Import needed here to avoid circular imports
+            import sys, os
+
+            sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+            from models import File, Project
+
+            # Try to find the file by name in the user's projects
+            projects = db.query(Project).filter(Project.user_id == user_id).all()
+            for project in projects:
+                file_obj = (
+                    db.query(File)
+                    .filter(
+                        File.project_id == project.id,
+                        File.filename == original_filename,
+                    )
+                    .first()
+                )
+
+                if file_obj:
+                    existing_content = file_obj.content or ""
+                    print(
+                        f"Found existing file: {original_filename}, content length: {len(existing_content)}"
+                    )
+                    break
+
+            if not existing_content:
+                print(
+                    f"File '{original_filename}' not found in database for user {user_id}"
+                )
+        except Exception as e:
+            print(f"Error fetching file content: {str(e)}")
 
     # Generate file content or modifications
     prompt = f"""
@@ -292,20 +333,25 @@ def generate_file_modification(repo_summary, user_message):
     
     Target file: {filename}
     
-    {"Create a new file with the following characteristics:" if is_new_file else "Provide the following:"}
+    {("Create a new file with the following characteristics:" if is_new_file else "Modify the existing file. Here is the current content:")}
     
-    1. Complete file content as it should appear after modifications
-    2. A concise explanation of what you're doing
+    {('' if is_new_file else f'```\n{existing_content}\n```')}
+    
+    {"" if is_new_file else "Your task is to make the requested changes while preserving the structure and functionality of the rest of the file."}
     
     Format your response as follows:
     
     ---FILE_CONTENT---
-    (Complete file content here)
+    (Complete file content here, WITHOUT any markdown code block delimiters like ```python or ```. Just provide the raw code exactly as it should appear in the file.)
     ---END_FILE_CONTENT---
     
     ---EXPLANATION---
     (Brief explanation of the changes)
     ---END_EXPLANATION---
+    
+    {"" if is_new_file else "---CHANGES_SUMMARY---\n(List the specific lines/methods/functions that were changed and what was changed)\n---END_CHANGES_SUMMARY---"}
+    
+    IMPORTANT: Do not include language markers or code block delimiters (like ```python or ```) in the file content. The content between FILE_CONTENT markers should be exactly what will be placed in the file.
     """
 
     model = genai.GenerativeModel("gemini-1.5-flash-002")
@@ -320,10 +366,21 @@ def generate_file_modification(repo_summary, user_message):
         r"---EXPLANATION---(.*?)---END_EXPLANATION---", response_text, re.DOTALL
     )
 
+    # Extract changes summary if this is a modification
+    changes_summary = None
+    if not is_new_file:
+        changes_summary = re.search(
+            r"---CHANGES_SUMMARY---(.*?)---END_CHANGES_SUMMARY---",
+            response_text,
+            re.DOTALL,
+        )
+
     file_content = file_content.group(1).strip() if file_content else ""
     explanation = explanation.group(1).strip() if explanation else ""
+    changes_summary = changes_summary.group(1).strip() if changes_summary else ""
 
-    return {
+    # Create a response object
+    response_obj = {
         "text": f"""
 **Proposed File Modification**
 
@@ -331,6 +388,8 @@ I'm going to {("create a new file" if is_new_file else "modify the file")} `{ori
 
 **Here's what I'll do:**
 {explanation}
+
+{("" if is_new_file else f"**Changes:**\n{changes_summary}\n\n")}
 
 **Preview of changes:**
 ```
@@ -346,3 +405,9 @@ Do you want me to {("create" if is_new_file else "modify")} this file?
             "is_new_file": is_new_file,
         },
     }
+
+    # If this is a modification, add the existing content for diff view
+    if not is_new_file:
+        response_obj["file_data"]["previous_content"] = existing_content
+
+    return response_obj

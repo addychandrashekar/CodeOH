@@ -47,6 +47,8 @@ export const EditorProvider = ({ children }) => {
     const toast = useToast()
 
     const [currentPath, setCurrentPath] = useState([])
+    const [pendingModification, setPendingModification] = useState(null)
+
     /**
      * Gets files in the current directory path
      * @param {string[]} path - Array of directory names
@@ -430,7 +432,9 @@ export const EditorProvider = ({ children }) => {
             error,
             isLoading,
             handleConsoleInput,
-            consoleHistory
+            consoleHistory,
+            pendingModification,
+            setPendingModification
         }}>
             {children}
         </EditorContext.Provider>

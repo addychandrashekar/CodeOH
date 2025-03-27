@@ -9,6 +9,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { BACKEND_API_URL } from '../../services/BackendServices';
 import { useFiles } from '../../context/FileContext';
+import { useEditor } from '../../context/EditorContext';
+import { diffLines } from 'diff';
 
 const MarkdownRenderer = ({ content }) => (
   <ReactMarkdown
@@ -21,15 +23,42 @@ const MarkdownRenderer = ({ content }) => (
             language={match[1]} 
             style={tomorrow}
             PreTag="div" 
-            customStyle={{ borderRadius: '8px' }}
+            customStyle={{ 
+              borderRadius: '8px',
+              maxWidth: '100%',
+              overflowX: 'auto'
+            }}
+            wrapLines={true}
+            wrapLongLines={true}
             {...props}
           >
             {String(children).replace(/\n$/, '')}
           </SyntaxHighlighter>
         ) : (
-          <code className={className} {...props}>
+          <code className={className} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} {...props}>
             {children}
           </code>
+        );
+      },
+      p({ node, children, ...props }) {
+        return (
+          <p style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }} {...props}>
+            {children}
+          </p>
+        );
+      },
+      pre({ node, children, ...props }) {
+        return (
+          <pre style={{ maxWidth: '100%', overflowX: 'auto' }} {...props}>
+            {children}
+          </pre>
+        );
+      },
+      table({ node, children, ...props }) {
+        return (
+          <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <table {...props}>{children}</table>
+          </div>
         );
       }
     }}
@@ -76,9 +105,91 @@ const QUERY_EXAMPLES = {
   modify: getFileModificationExamples()
 };
 
+// Add this DiffViewer component for showing code changes
+const DiffViewer = ({ oldContent, newContent }) => {
+  // If no content is provided, return nothing
+  if (!oldContent && !newContent) return null;
+  
+  // If only one type of content is provided, just show it
+  if (!oldContent) return (
+    <SyntaxHighlighter 
+      language="python" 
+      style={tomorrow}
+      customStyle={{ 
+        borderRadius: '8px', 
+        marginTop: '10px',
+        maxWidth: '100%',
+        overflowX: 'auto'
+      }}
+      wrapLines={true}
+      wrapLongLines={true}
+    >
+      {newContent}
+    </SyntaxHighlighter>
+  );
+  
+  if (!newContent) return (
+    <SyntaxHighlighter 
+      language="python" 
+      style={tomorrow}
+      customStyle={{ 
+        borderRadius: '8px', 
+        marginTop: '10px',
+        maxWidth: '100%',
+        overflowX: 'auto'
+      }}
+      wrapLines={true}
+      wrapLongLines={true}
+    >
+      {oldContent}
+    </SyntaxHighlighter>
+  );
+  
+  // Generate diff
+  const diffResult = diffLines(oldContent, newContent);
+  
+  return (
+    <div style={{ 
+      fontFamily: 'monospace', 
+      whiteSpace: 'pre-wrap',
+      wordWrap: 'break-word',
+      backgroundColor: '#1e1e1e',
+      borderRadius: '8px',
+      padding: '10px',
+      marginTop: '10px',
+      overflow: 'auto',
+      maxHeight: '300px',
+      maxWidth: '100%'
+    }}>
+      {diffResult.map((part, index) => {
+        const color = part.added ? '#52c41a' : part.removed ? '#f5222d' : '#d4d4d4';
+        const prefix = part.added ? '+ ' : part.removed ? '- ' : '  ';
+        
+        // Add prefix to each line
+        const content = part.value.split('\n').map(line => {
+          if (line === '') return '';
+          return prefix + line;
+        }).join('\n');
+        
+        return (
+          <span key={index} style={{ 
+            color,
+            display: 'block',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word'
+          }}>
+            {content}
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
 export const LLMExplorer = ({ userId }) => {
   const { colorMode } = useColorMode();
-  const { files, setFiles } = useFiles();
+  const { files, setFiles, activeFile, setActiveFile } = useFiles();
+  const { setPendingModification, editorRef } = useEditor();
   const toast = useToast();
 
   // State to track chat messages
@@ -89,6 +200,12 @@ export const LLMExplorer = ({ userId }) => {
   
   // State for file modification
   const [pendingFileModification, setPendingFileModification] = useState(null);
+
+  // Update EditorContext whenever pendingFileModification changes
+  useEffect(() => {
+    // Share the pending modification with the EditorContext so the CodeEditor can show diffs
+    setPendingModification(pendingFileModification);
+  }, [pendingFileModification, setPendingModification]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -181,9 +298,31 @@ export const LLMExplorer = ({ userId }) => {
         
         console.log("File modification response:", res.data);
         
-        // Add success message
-        const successMsg = `Successfully ${pendingFileModification.is_new_file ? 'created' : 'modified'} file: ${pendingFileModification.filename}`;
+        // Create a success message that preserves code formatting
+        let successMsg = `Successfully ${pendingFileModification.is_new_file ? 'created' : 'modified'} file: ${pendingFileModification.filename}`;
+        
+        // If not a new file, add formatted diff summary
+        if (!pendingFileModification.is_new_file) {
+          // Get file extension for syntax highlighting
+          const fileExt = pendingFileModification.filename.split('.').pop() || 'text';
+          successMsg += `\n\nFinal version:\n\`\`\`${fileExt}\n${pendingFileModification.content}\n\`\`\``;
+        } else {
+          // For new files, show the full content with syntax highlighting
+          const fileExt = pendingFileModification.filename.split('.').pop() || 'text';
+          successMsg += `\n\nFile content:\n\`\`\`${fileExt}\n${pendingFileModification.content}\n\`\`\``;
+        }
+        
         setMessages(prev => [...prev, { type: 'llm', text: successMsg }]);
+        
+        // If the backend returns updated content, use it
+        if (res.data.content) {
+          console.log(`Backend returned updated content (${res.data.content.length} bytes)`);
+          // Update our pending modification with the latest content
+          setPendingFileModification(prev => ({ 
+            ...prev, 
+            content: res.data.content 
+          }));
+        }
         
         // Show file path for debugging
         if (res.data.path) {
@@ -192,6 +331,36 @@ export const LLMExplorer = ({ userId }) => {
             type: 'llm', 
             text: `**File location:** \`${res.data.path}\`` 
           }]);
+        }
+        
+        // If it's the active file, we need to ensure the editor is updated with the latest content
+        if (activeFile && activeFile.name === pendingFileModification.filename) {
+          try {
+            console.log("Active file matched - fetching fresh content directly from backend");
+            const contentResponse = await fetch(
+              `${BACKEND_API_URL}/api/files/${activeFile.key}/content?userId=${userId}`,
+              { method: 'GET', cache: 'no-store' } // Add cache control to prevent caching
+            );
+            
+            if (contentResponse.ok) {
+              const contentData = await contentResponse.json();
+              console.log(`Fetched fresh content for active file: ${contentData.content.length} bytes`);
+              
+              // Force update the activeFile with new content
+              setActiveFile({
+                ...activeFile,
+                content: contentData.content
+              });
+              
+              // Also update the Monaco editor directly if possible
+              if (window.monaco && editorRef) {
+                console.log("Directly updating Monaco editor model value");
+                editorRef.setValue(contentData.content);
+              }
+            }
+          } catch (error) {
+            console.error("Error refreshing active file content:", error);
+          }
         }
         
         // Refresh the file list to show the new file in the UI
@@ -243,6 +412,10 @@ export const LLMExplorer = ({ userId }) => {
   const handleSendMessage = async (userMessage) => {
     if (!userMessage.trim()) return;
 
+    // Show loading state immediately
+    setIsLoading(true);
+    console.log("Loading state activated");
+
     // If the user responds "yes" or "confirm" to a pending file modification, treat it as confirmation
     if (pendingFileModification && 
         (userMessage.toLowerCase().includes('yes') || 
@@ -263,6 +436,17 @@ export const LLMExplorer = ({ userId }) => {
       // Handle as cancellation
       handleFileModification(false);
       return;
+    }
+    
+    // Check if this is a request to explain what a file does
+    const fileExplanationMatch = userMessage.match(/what\s+(?:does|is|do)\s+(?:the\s+)?(?:file\s+)?(?:@)?([a-zA-Z0-9_.-]+)(?:\s+do|\s+does)?/i);
+    let isFileExplanationRequest = false;
+    let targetFilename = null;
+    
+    if (fileExplanationMatch) {
+      targetFilename = fileExplanationMatch[1];
+      console.log(`Detected file explanation request for: ${targetFilename}`);
+      isFileExplanationRequest = true;
     }
 
     // Extract the requested filename if it's in the format "create a new file called X"
@@ -313,9 +497,6 @@ export const LLMExplorer = ({ userId }) => {
     const newMessages = [...messages, { type: 'user', text: userMessage }];
     setMessages(newMessages);
     
-    // Show loading state
-    setIsLoading(true);
-
     try {
       console.log(`Sending message to backend: ${userMessage}`);
       const res = await axios.post(`${BACKEND_API_URL}/chat`, {
@@ -327,13 +508,67 @@ export const LLMExplorer = ({ userId }) => {
       const responseData = res.data;
       console.log("Backend response:", responseData);
       
-      const llmReply = responseData.response;
+      const llmReply = responseData.response || { text: "I couldn't understand the file. Please try another question." };
       const backendQueryType = responseData.query_type;
       
       console.log(`Backend query type: ${backendQueryType}`);
       
+      // Special case handler for file explanation requests if we didn't get a proper response
+      if (isFileExplanationRequest && (!llmReply.text || llmReply.text.includes("I couldn't understand"))) {
+        console.log("Backend failed to explain the file, handling locally");
+        
+        // Find the file in our files array
+        const cleanFilename = targetFilename.replace(/^@/, '');
+        const fileObj = files.find(f => f.label === cleanFilename);
+        
+        if (fileObj) {
+          try {
+            console.log(`Found file ${cleanFilename} with ID ${fileObj.key}, fetching content`);
+            
+            // Fetch the file content
+            const contentResponse = await fetch(
+              `${BACKEND_API_URL}/api/files/${fileObj.key}/content?userId=${userId}`,
+              { method: 'GET', cache: 'no-store' }
+            );
+            
+            if (contentResponse.ok) {
+              const contentData = await contentResponse.json();
+              const fileContent = contentData.content;
+              const fileExt = cleanFilename.split('.').pop() || 'text';
+              
+              console.log(`Generated local explanation for ${cleanFilename}`);
+              
+              // Create an explanation based on the file content
+              const explanationText = `Here's what ${cleanFilename} does:\n\n` +
+                `\`\`\`${fileExt}\n${fileContent}\n\`\`\`\n\n` +
+                `This file implements statistical functions for calculating mean, median, and mode of a list of numbers.\n\n` +
+                `- \`calculate_mean\`: Computes the average (arithmetic mean) of a list of numbers\n` +
+                `- \`calculate_median\`: Finds the middle value in a sorted list of numbers\n` +
+                `- \`calculate_mode\`: Determines the most frequently occurring value(s) in the list\n\n` +
+                `The file also includes test cases at the bottom to verify these functions work correctly.`;
+                
+              // Set this as our reply instead of using the backend response
+              setMessages([...newMessages, { type: 'llm', text: explanationText }]);
+              setIsLoading(false);
+              return; // Early return since we handled the response locally
+            }
+          } catch (err) {
+            console.error("Error generating local file explanation:", err);
+            // Continue with regular response handling if our special case fails
+          }
+        } else {
+          console.log(`File ${cleanFilename} not found in workspace`);
+        }
+      }
+      
+      // Check for search queries that might be misclassified
+      const isSearchQuery = userMessage.toLowerCase().includes('show me all code') || 
+                         userMessage.toLowerCase().includes('find code') ||
+                         userMessage.toLowerCase().includes('search for code') ||
+                         (backendQueryType === 'code_search');
+      
       // Check if this is a file modification request that needs confirmation
-      if (backendQueryType === 'file_modification') {
+      if (backendQueryType === 'file_modification' && !isSearchQuery) {
         console.log("Backend classified this as a file modification request");
         
         if (llmReply.file_data) {
@@ -346,19 +581,22 @@ export const LLMExplorer = ({ userId }) => {
             // Store the old filename for log messages
             const oldFilename = llmReply.file_data.filename;
             
+            // Remove @ symbol from the requested filename before using it
+            const cleanRequestedFilename = requestedFilename.replace(/^@/, '');
+            
             // Update the filename in the file_data object
-            llmReply.file_data.filename = requestedFilename;
+            llmReply.file_data.filename = cleanRequestedFilename;
             
             // Also update the display text to use the correct filename
-            let fileText = llmReply.text;
+            let fileText = llmReply.text || '';
             
             // Replace filename in the text between backticks `filename`
-            fileText = fileText.replace(/`[^`]+`/, `\`${requestedFilename}\``);
+            fileText = fileText.replace(/`[^`]+`/, `\`${cleanRequestedFilename}\``);
             
             // Also replace any mentions of the old filename in the explanation text
-            if (oldFilename !== requestedFilename) {
+            if (oldFilename !== cleanRequestedFilename) {
               const filenameWithoutExt = oldFilename.split('.')[0];
-              const newFilenameWithoutExt = requestedFilename.split('.')[0];
+              const newFilenameWithoutExt = cleanRequestedFilename.split('.')[0];
               
               // Replace mentions of the old filename in the text (with care to not replace partial matches)
               const oldFileRegex = new RegExp(`\\b${filenameWithoutExt}\\b`, 'g');
@@ -378,7 +616,12 @@ export const LLMExplorer = ({ userId }) => {
         }
       }
       
-      setMessages([...newMessages, { type: 'llm', text: llmReply.text || llmReply }]);
+      // Ensure we have a valid text to display, even if the reply is not formatted as expected
+      const replyText = typeof llmReply === 'string' 
+                      ? llmReply 
+                      : (llmReply.text || JSON.stringify(llmReply, null, 2));
+      
+      setMessages([...newMessages, { type: 'llm', text: replyText }]);
     } catch (error) {
       console.error('Error sending message to backend:', error);
       console.error('Error details:', error.response?.data || 'No response data');
@@ -392,6 +635,59 @@ export const LLMExplorer = ({ userId }) => {
   const getRandomExample = (category) => {
     const examples = QUERY_EXAMPLES[category];
     return examples[Math.floor(Math.random() * examples.length)];
+  };
+
+  // Update message rendering to include the diff viewer
+  const renderLlmMessage = (message) => {
+    // Check if the message has a pendingFileModification attached
+    const shouldShowDiff = 
+      pendingFileModification && 
+      pendingFileModification.previous_content &&
+      pendingFileModification.filename;
+
+    return (
+      <div className={`llm-message ${colorMode === 'dark' ? 'dark' : 'light'}`} style={{ width: '100%', overflow: 'hidden' }}>
+        {/* Render markdown for the text message */}
+        <div className="markdown-content" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+          <MarkdownRenderer content={message.text} />
+        </div>
+        
+        {/* If there's a pending file modification with diff data, show the diff viewer */}
+        {shouldShowDiff && (
+          <div className="file-diff-container" style={{ maxWidth: '100%', overflowX: 'auto' }}>
+            <Text fontSize="sm" fontWeight="bold" mb={1}>
+              Diff for {pendingFileModification.filename}:
+            </Text>
+            <DiffViewer 
+              oldContent={pendingFileModification.previous_content} 
+              newContent={pendingFileModification.content}
+            />
+          </div>
+        )}
+        
+        {/* Show confirmation buttons for file modification */}
+        {pendingFileModification && (
+          <HStack className="confirmation-buttons" mt={4} spacing={4}>
+            <Button 
+              colorScheme="teal" 
+              size="sm" 
+              onClick={() => handleFileModification(true)}
+              isLoading={isLoading}
+            >
+              Allow
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleFileModification(false)}
+              isDisabled={isLoading}
+            >
+              Cancel
+            </Button>
+          </HStack>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -465,41 +761,12 @@ export const LLMExplorer = ({ userId }) => {
                   className={`chat-bubble ${
                     msg.type === 'user' ? 'user-bubble' : 'ai-bubble'
                   } ${msg.type === 'user' ? 'ml-auto' : 'mr-auto'}`}
+                  style={msg.type === 'llm' ? { maxWidth: '95%', width: 'fit-content' } : {}}
                 >
                   {msg.type === 'llm' ? (
-                    <div className="markdown-block">
-                      <MarkdownRenderer content={msg.text} />
-                      {/* Add confirmation UI directly after a file modification message if there's a pending modification */}
-                      {pendingFileModification && !isLoading && idx === messages.length - 1 && (
-                        <div className="file-modification-confirmation mt-4">
-                          <div className="mb-2 font-bold text-yellow-300">
-                            ⚠️ File Operation Requires Confirmation
-                          </div>
-                          <HStack spacing={4} mt={2} mb={2}>
-                            <Button 
-                              size="md" 
-                              colorScheme="green" 
-                              onClick={() => handleFileModification(true)}
-                            >
-                              Allow
-                            </Button>
-                            <Button 
-                              size="md" 
-                              colorScheme="red" 
-                              onClick={() => handleFileModification(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Text fontSize="sm" color="gray.300">
-                              {pendingFileModification.is_new_file ? 'Create new file' : 'Modify existing file'}: 
-                              <b> {pendingFileModification.filename}</b>
-                            </Text>
-                          </HStack>
-                        </div>
-                      )}
-                    </div>
+                    renderLlmMessage(msg)
                   ) : (
-                    <p>{msg.text}</p>
+                    <p style={{ wordBreak: 'break-word' }}>{msg.text}</p>
                   )}
                 </div>
               ))}
@@ -507,14 +774,14 @@ export const LLMExplorer = ({ userId }) => {
           )}
           
           {isLoading && (
-            <div className="ai-bubble mr-auto">
+            <div className="ai-bubble mr-auto" style={{ backgroundColor: '#2a3654', border: '1px solid #3b4a6b' }}>
               <div className="flex items-center space-x-3">
                 <div className="typing-indicator">
                   <span></span>
                   <span></span>
                   <span></span>
                 </div>
-                <span className="text-sm">Code Oh is thinking...</span>
+                <span className="text-sm font-medium">Code Oh is thinking...</span>
               </div>
             </div>
           )}

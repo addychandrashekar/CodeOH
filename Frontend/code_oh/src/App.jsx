@@ -11,6 +11,7 @@ import { THEME_CONFIG } from './configurations/config'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { BACKEND_API_URL } from './services/BackendServices'
+import { useEditor } from './context/EditorContext'
 import 'primereact/resources/themes/saga-blue/theme.css'; 
 import 'primereact/resources/primereact.min.css';         
 import 'primeicons/primeicons.css';
@@ -28,6 +29,7 @@ function App() {
   const { colorMode } = useColorMode()
   const [isLLMOpen, setIsLLMOpen] = useState(false)
   const [isLoadingContent, setIsLoading] = useState(true)
+  const { pendingModification } = useEditor()
 
   const { 
     isLoading,
@@ -154,7 +156,7 @@ function App() {
               <PanelGroup direction="vertical">
                 <Panel defaultSize={60}>
                   <Box h="100%" bg={colorMode === 'dark' ? 'gray.900' : 'gray.100'}>
-                    <CodeEditor />
+                    <CodeEditor pendingModification={pendingModification} />
                   </Box>
                 </Panel>
 

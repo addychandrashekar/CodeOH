@@ -21,7 +21,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
  * @component
  * @returns {JSX.Element} A Monaco code editor instance with configured options
  */
-export const CodeEditor = () => {
+export const CodeEditor = ({ pendingModification }) => {
     // Editor reference for direct manipulation
     const tempEditorRef = useRef()
     // Local state for editor content
@@ -30,8 +30,14 @@ export const CodeEditor = () => {
     // Editor context for language and reference management
     const { editorRef, setEditorRef, language, setLanguage } = useEditor() 
     // File context for active file management
-    const { activeFile } = useFiles()
+    const { activeFile, setActiveFile } = useFiles()
     const { user } = useKindeAuth();
+    // State for diff mode
+    const [diffMode, setDiffMode] = useState(false);
+    const [originalContent, setOriginalContent] = useState('');
+    const [modifiedContent, setModifiedContent] = useState('');
+    // Track last modification timestamp
+    const [lastModified, setLastModified] = useState(0);
 
     /**
      * Handles the editor initialization when it mounts
@@ -43,7 +49,53 @@ export const CodeEditor = () => {
         setEditorRef(editor)
         configureEditor(editor, monaco, language)
         editor.focus()
+        
+        // Set up global Monaco reference
+        window.monaco = monaco;
     }
+    
+    /**
+     * Explicitly reload the content for the active file from the backend
+     */
+    const reloadActiveFileContent = async () => {
+        if (!activeFile || !user) return;
+        
+        const fileId = activeFile.key;
+        try {
+            console.log(`Explicitly reloading content for file ID: ${fileId}`);
+            const response = await fetch(
+                `${BACKEND_API_URL}/api/files/${fileId}/content?userId=${user.id}`,
+                { method: 'GET' }
+            );
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`Reloaded file content, length: ${data.content.length}`);
+                
+                // Update the active file with fresh content
+                const updatedFile = {
+                    ...activeFile,
+                    content: data.content
+                };
+                
+                // Update both the active file and editor state
+                setActiveFile(updatedFile);
+                setValue(data.content);
+                setDocState({
+                    ...docState,
+                    content: data.content
+                });
+                
+                // Update the last modified timestamp
+                setLastModified(Date.now());
+            } else {
+                console.error("Failed to reload file content:", await response.text());
+            }
+        } catch (error) {
+            console.error("Error reloading file content:", error);
+        }
+    };
+    
     // Update editor content and language when active file changes
     useEffect(() => {
         if (activeFile) {
@@ -52,14 +104,51 @@ export const CodeEditor = () => {
             setLanguage(newLanguage)
             setValue(activeFile.content || CODE_SNIPPETS[newLanguage] || '')
             setDocState(activeFile);
+            
+            // Reset diff mode when a new file is loaded
+            setDiffMode(false);
         } else {
             setValue('');
             setDocState(null);
         }
     }, [activeFile])
+    
+    // Check for pending modifications that should be shown as diffs
+    useEffect(() => {
+        if (pendingModification && 
+            activeFile && 
+            pendingModification.previous_content) {
+            
+            // Clean filenames for comparison (without @ symbol)
+            const cleanActiveFileName = activeFile.name.replace(/^@/, '');
+            const cleanPendingFileName = pendingModification.filename.replace(/^@/, '');
+            
+            console.log("Checking diff view for:", {
+                activeFile: cleanActiveFileName,
+                pendingMod: cleanPendingFileName,
+                match: cleanActiveFileName === cleanPendingFileName
+            });
+            
+            // Check if this modification is for the current file
+            if (cleanActiveFileName === cleanPendingFileName) {
+                console.log("Showing diff for pending modification of:", pendingModification.filename);
+                setDiffMode(true);
+                setOriginalContent(pendingModification.previous_content);
+                setModifiedContent(pendingModification.content);
+            } else {
+                // If file doesn't match, reset diff mode
+                setDiffMode(false);
+            }
+        } else if (pendingModification === null && diffMode) {
+            // When a modification is confirmed or canceled, reload the file content
+            setDiffMode(false);
+            reloadActiveFileContent();
+        } else {
+            setDiffMode(false);
+        }
+    }, [pendingModification, activeFile]);
 
     const handleAutoSave = async (docState) => {
-
         if (!docState)
           return;
     
@@ -127,6 +216,41 @@ export const CodeEditor = () => {
             content: content
         }));
     };
+    
+    // Render different editor based on diff mode
+    if (diffMode && window.monaco) {
+        console.log("Rendering diff editor with:", {
+            original: originalContent.substring(0, 100) + "...",
+            modified: modifiedContent.substring(0, 100) + "..."
+        });
+        
+        return (
+            <Box h="100%" overflow="hidden">
+                <Editor
+                    height="100%"
+                    theme="vs-dark"
+                    original={originalContent}
+                    modified={modifiedContent}
+                    language={language}
+                    onMount={handleEditorDidMount}
+                    options={{
+                        readOnly: true, // Diff view is read-only
+                        renderSideBySide: true,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
+                        fontSize: THEME_CONFIG.EDITOR_FONT_SIZE,
+                        fontFamily: THEME_CONFIG.FONT_FAMILY,
+                        diffEditor: {
+                            renderSideBySide: true,
+                            enableSplitViewResizing: true,
+                            ignoreTrimWhitespace: false,
+                        }
+                    }}
+                />
+            </Box>
+        );
+    }
 
     return (
         <Box h="100%" overflow="hidden">
@@ -135,7 +259,6 @@ export const CodeEditor = () => {
                 theme="vs-dark"
                 language={language}
                 value={value}
-                // onChange={(newValue) => setValue(newValue)}
                 onChange={handleContentChange}
                 onMount={handleEditorDidMount}
                 options={{

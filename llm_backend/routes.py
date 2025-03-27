@@ -11,6 +11,7 @@ from .llm_response import (
 )
 from .database import store_embedding_in_supabase, get_repository_summary
 from .query_classifier import classify_query
+from .utils import vector_search  # Import vector_search from utils
 import os
 import shutil
 from pathlib import Path
@@ -18,6 +19,7 @@ import re
 from sqlalchemy.orm import Session
 import sys
 import os
+from sqlalchemy import text
 
 # Add the parent directory to sys.path to be able to import database
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -75,82 +77,143 @@ def check_and_create_projects_dir():
 
 
 @llm_router.post("/chat")
-async def chat_with_llm(request: dict):
-    """
-    Handles the user query, retrieves context from Supabase, and sends it to LLM to generate a response.
+async def chat(request: dict, db: Session = Depends(get_db)):
+    """Handles chat requests, routing them to the appropriate LLM function."""
+    user_message = request.get("user_message", "")
+    user_id = request.get("user_id", "")
 
-    Now supports different types of queries:
-    - Code search: Find code snippets (original functionality)
-    - Code explanation: Explain how code works
-    - Code optimization: Suggest improvements to code
-    - Code generation: Create new code based on natural language description
-    - File modification: Modify existing files or create new files
-    - General: Answer general questions about the codebase or programming
+    if not user_message:
+        return {"error": "No message provided"}
 
-    Request should contain a body with the structure:
-        {
-            "user_message": message,
-            "user_id": user_id
-        }
-    """
+    # Detect if this is a search query for code
+    search_patterns = [
+        r"show me all (?:the )?code related to (\w+)",
+        r"find (?:all )?code (?:related to|for|about) (\w+)",
+        r"search for (\w+) in (?:the )?code",
+        r"look for (\w+) in (?:the )?code",
+        r"show me (?:the )?code for (\w+)",
+        r"where is (?:the )?code for (\w+)",
+    ]
+
+    is_search_query = False
+    search_term = None
+
+    for pattern in search_patterns:
+        match = re.search(pattern, user_message.lower())
+        if match:
+            is_search_query = True
+            search_term = match.group(1)
+            print(f"[DEBUG] Detected search query for term: {search_term}")
+            break
 
     try:
-        user_message = request.get("user_message")
-        user_id = request.get("user_id")
+        # If this is a code search query, handle it with a specialized approach
+        if is_search_query and search_term:
+            print(f"[DEBUG] Processing code search query for: {search_term}")
+            try:
+                # Use vector search to find relevant code
+                results = vector_search(search_term, user_id, top_k=5)
 
-        # Step 1: Classify the query type
+                if not results or len(results) == 0:
+                    return {
+                        "response": {
+                            "text": f"I couldn't find any code related to '{search_term}'. Please try a different search term."
+                        },
+                        "query_type": "code_search",
+                    }
+
+                # Build a response with the code snippets found
+                response_text = f"Here's the code related to '{search_term}':\n\n"
+
+                for idx, result in enumerate(results):
+                    filename = result.get("filename", "unknown")
+                    snippet = result.get("content", "")
+
+                    # Add the file and code snippet to the response
+                    response_text += f"**File: {filename}**\n\n"
+                    file_extension = (
+                        filename.split(".")[-1] if "." in filename else "txt"
+                    )
+                    response_text += f"```{file_extension}\n{snippet}\n```\n\n"
+
+                return {
+                    "response": {"text": response_text},
+                    "query_type": "code_search",
+                }
+            except Exception as e:
+                print(f"[ERROR] Code search query processing failed: {str(e)}")
+                # Fall back to regular processing if specialized search fails
+
+        # Regular query processing continues below
+        # Determine the query type
         query_type = classify_query(user_message)
-        print(f"Query type classified as: {query_type}")
+        print(f"Detected query type: {query_type}")
 
-        # Step 2: Handle based on query type
+        # Get repository summary to provide context to the LLM
+        repo_summary = get_repository_summary(user_id)
+
+        # Based on query type, route to appropriate function
         if query_type == "code_search":
-            # Existing code search logic
-            query_embedding = generate_embedding(user_message)
-            context = search_code(user_id, query_embedding, 0.5)
-            llm_response = generate_llm_response(context, user_message)
+            # Search for relevant code snippets
+            search_results = await search_code(user_message, user_id)
+
+            # Format results for readability
+            if search_results:
+                context = format_search_results(search_results)
+            else:
+                context = "No relevant code found"
+
+            # Generate response that explains the code found
+            response = generate_llm_response(context, user_message)
+            return {"response": response, "query_type": query_type}
 
         elif query_type == "code_explanation":
-            # Find code first, then explain it
-            query_embedding = generate_embedding(user_message)
-            context = search_code(user_id, query_embedding, 0.3)  # Lower threshold
-            llm_response = generate_code_explanation(context, user_message)
+            # Search for code to explain
+            search_results = await search_code(user_message, user_id)
+
+            # Format results for explanation
+            if search_results:
+                context = format_search_results(search_results)
+            else:
+                context = "No relevant code found to explain"
+
+            # Generate explanation
+            response = generate_code_explanation(context, user_message)
+            return {"response": response, "query_type": query_type}
 
         elif query_type == "code_optimization":
-            # Find code, then provide optimization suggestions
-            query_embedding = generate_embedding(user_message)
-            context = search_code(user_id, query_embedding, 0.3)
-            llm_response = generate_optimization_advice(context, user_message)
+            # Search for code to optimize
+            search_results = await search_code(user_message, user_id)
 
-        elif query_type == "code_generation":
-            # Generate new code based on natural language description
-            repo_summary = get_repository_summary(user_id)
-            llm_response = generate_code_implementation(repo_summary, user_message)
+            # Format results for optimization
+            if search_results:
+                context = format_search_results(search_results)
+            else:
+                context = "No relevant code found to optimize"
+
+            # Generate optimization suggestions
+            response = generate_optimization_advice(context, user_message)
+            return {"response": response, "query_type": query_type}
 
         elif query_type == "file_modification":
-            # Generate file modification proposal that requires user confirmation
-            repo_summary = get_repository_summary(user_id)
-            llm_response = generate_file_modification(repo_summary, user_message)
-            # Log the file_data for debugging
-            if "file_data" in llm_response:
-                print(
-                    f"File modification detected: {llm_response['file_data']['filename']}"
-                )
-                print(f"Is new file: {llm_response['file_data']['is_new_file']}")
-                print(f"Content length: {len(llm_response['file_data']['content'])}")
-            else:
-                print(
-                    "Warning: file_data not found in llm_response for file_modification"
-                )
+            # Generate file modification instructions
+            response = generate_file_modification(
+                repo_summary, user_message, db, user_id
+            )
+            return {"response": response, "query_type": query_type}
 
-        else:  # General questions
-            # Use repository context and answer directly
-            repo_summary = get_repository_summary(user_id)
-            llm_response = generate_general_response(repo_summary, user_message)
+        elif query_type == "code_generation":
+            # Generate code based on description
+            response = generate_code_implementation(repo_summary, user_message)
+            return {"response": response, "query_type": query_type}
 
-        return {"response": llm_response, "query_type": query_type}
+        else:  # general
+            # Answer general questions
+            response = generate_general_response(repo_summary, user_message)
+            return {"response": response, "query_type": query_type}
 
     except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")
+        print(f"Error: {str(e)}")
         return {"error": str(e)}
 
 
@@ -204,17 +267,37 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
         )
 
         # Clean up content if needed - remove markdown code block delimiters
-        if content and content.startswith("```"):
-            print(
-                f"[DEBUG] Content appears to contain markdown code blocks, cleaning up"
-            )
+        if content:
+            print(f"[DEBUG] Checking content for markdown code blocks")
+
             # Remove opening code block delimiter (```python or just ```)
             content = re.sub(
                 r"^```(?:python|javascript|js|html|css|[a-zA-Z]*)\n", "", content
             )
             # Remove closing code block delimiter
             content = re.sub(r"\n```$", "", content)
+
+            # Also check for any additional markdown code blocks inside the content
+            content = re.sub(
+                r"```(?:python|javascript|js|html|css|[a-zA-Z]*)\n", "", content
+            )
+            content = re.sub(r"\n```", "", content)
+
+            # More aggressive cleanup for any remaining code block markers
+            content = (
+                content.replace("```python", "")
+                .replace("```js", "")
+                .replace("```javascript", "")
+            )
+            content = (
+                content.replace("```html", "").replace("```css", "").replace("```", "")
+            )
+
+            # Remove any leading/trailing whitespace that might have been added during cleanup
+            content = content.strip()
+
             print(f"[DEBUG] Content after cleanup: {len(content)} bytes")
+            print(f"[DEBUG] First 100 chars: {content[:100]}")
 
         # Find or create project for this user
         project = db.query(Project).filter(Project.user_id == user_id).first()
@@ -238,7 +321,27 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
 
         if existing_file:
             print(f"[DEBUG] File already exists in database, updating content")
-            existing_file.content = content
+            print(
+                f"[DEBUG] Previous content length: {len(existing_file.content) if existing_file.content else 0}"
+            )
+            print(f"[DEBUG] New content length: {len(content) if content else 0}")
+
+            # Use direct SQL update to ensure changes persist
+            file_id = existing_file.id
+            print(f"[DEBUG] Using direct SQL update for file ID: {file_id}")
+
+            update_query = text("UPDATE files SET content = :content WHERE id = :id")
+            db.execute(update_query, {"content": content, "id": file_id})
+            db.commit()
+            print(f"[DEBUG] Direct SQL update executed")
+
+            # Verify update by fetching directly from DB
+            verify_query = text("SELECT content FROM files WHERE id = :id")
+            result = db.execute(verify_query, {"id": file_id}).fetchone()
+            if result:
+                print(f"[DEBUG] Verified content length after update: {len(result[0])}")
+            else:
+                print(f"[DEBUG] Warning: Could not verify update")
         else:
             print(f"[DEBUG] Creating new file record in database")
             # Create a new file record
@@ -255,6 +358,13 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
         db.commit()
         print(f"[DEBUG] Database updated successfully")
 
+        # Explicitly refresh data if we updated an existing file
+        if existing_file:
+            db.refresh(existing_file)
+            print(
+                f"[DEBUG] Refreshed file object: content length {len(existing_file.content)}"
+            )
+
         # If it's a new file, also add it to the embedding database for future searches
         if is_new_file:
             print(f"[DEBUG] Generating embedding for new file")
@@ -262,10 +372,12 @@ async def apply_file_modification(request: dict, db: Session = Depends(get_db)):
             store_embedding_in_supabase(user_id, filename, content, embedding)
             print(f"[DEBUG] Stored embedding in database")
 
+        # Return the updated content along with success message to ensure frontend has latest data
         return {
             "message": f"File {'created' if is_new_file else 'modified'} successfully",
             "filename": filename,
             "database_updated": True,
+            "content": content,
         }
     except Exception as e:
         print(f"[ERROR] Error in apply_file_modification endpoint: {str(e)}")
