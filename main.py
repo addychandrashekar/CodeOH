@@ -124,6 +124,10 @@ def delete_user(user_id: str, db: Session = Depends(get_db)):
 class FileContent(BaseModel):
     content: str
 
+class FileContentUpdateRequest(BaseModel):
+    content: str
+
+
 
 class FolderUploadRequest(BaseModel):
     name: str
@@ -429,6 +433,47 @@ def get_file_content(file_id: str, userId: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@app.post("/api/files/{file_id}/content")
+def post_file_content(file_id: str, userId: str, content_request: FileContentUpdateRequest, db: Session = Depends(get_db)):
+    try:
+        print(f"Getting content for file ID: {file_id}, userId: {userId}")
+
+        # First, get the file
+        file = db.query(File).filter(File.id == file_id).first()
+        print(f"Found file: {file.filename if file else 'None'}")
+
+        if not file:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        # Get the project to verify user has access
+        project = db.query(Project).filter(Project.id == file.project_id).first()
+        print(f"Found project: {project.name if project else 'None'}")
+
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Verify user has access to this file
+        if str(project.user_id) != userId:  # Convert UUID to string for comparison
+            print(
+                f"Auth failed: Project user_id: {project.user_id}, Request userId: {userId}"
+            )
+            raise HTTPException(
+                status_code=403, detail="Not authorized to access this file"
+            )
+
+        file.content = content_request.content
+        db.commit()
+
+        # Return the file content
+        print(f"Returning content length: {len(file.content) if file.content else 0}")
+        return {"content": file.content or "", "fileType": file.file_type}
+    except Exception as e:
+        print(f"Error in get_file_content: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @app.delete("/api/files/{file_id}")
 def delete_file(
     file_id: str, user_request: UserIdRequest, db: Session = Depends(get_db)
@@ -448,6 +493,25 @@ def delete_file(
     db.commit()
     return {"message": "File deleted successfully"}
 
+
+@app.delete("/api/folder/{folder_id}")
+def delete_folder(
+    folder_id: str, user_request: UserIdRequest, db: Session = Depends(get_db)
+):
+    folder = db.query(Folder).filter(Folder.id == folder_id).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    # Verify user has permission to delete this file
+    project = db.query(Project).filter(Project.id == folder.project_id).first()
+    if project.user_id != user_request.userId:
+        raise HTTPException(
+            status_code=403, detail="Not authorized to delete this file"
+        )
+
+    db.delete(folder)
+    db.commit()
+    return {"message": "Folder deleted successfully"}
 
 @app.post("/api/files/upload")
 def upload_files(request: FileUploadRequest, db: Session = Depends(get_db)):
