@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@kinde-oss/kinde-auth-react": "^3.0.27",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.11.3",
@@ -18,10 +17,12 @@
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
+    "@kinde-oss/kinde-auth-react": "^3.0.27",
     "@monaco-editor/react": "^4.6.0",
     "@tailwindcss/postcss": "^4.0.9",
     "axios": "^1.7.9",
     "framer-motion": "^10.18.0",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.474.0",
     "monaco-languageclient": "^9.1.1",
     "primeflex": "^3.3.1",

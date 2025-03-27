@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   VStack,
@@ -16,7 +16,6 @@ import { LANGUAGE_ICONS } from '../../services/languageVersions';
 import { THEME_CONFIG } from '../../configurations/config';
 import { BACKEND_API_URL } from '../../services/BackendServices';
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-
 
 const handleSignOut = () => {
   logout(); // trigger the Kinde sign-out process
@@ -98,10 +97,28 @@ const buildFolderTree = (fileList) => {
 
 const FileItem = ({ item }) => {
   const { colorMode } = useColorMode();
-  const { setActiveFile, activeFile } = useFiles();
+  const { setActiveFile, activeFile, files, setFiles } = useFiles();
   const { user } = useKindeAuth();
+  const filesRef = useRef(files);
   const toast = useToast();
   const isActive = activeFile?.name === item.label;
+
+  const removeNodeFromTree = (nodes, removalKey) => {
+
+    return nodes
+      .filter(node => {  
+        return node.key !== removalKey;
+    })
+      .map(node => {
+        if (node.children && node.children.length > 0) {
+          return {
+            ...node,
+            children: removeNodeFromTree(node.children, removalKey)
+          };
+        }
+        return node;
+      });
+  };
 
   const handleFileClick = async () => {
     try {
@@ -148,13 +165,15 @@ const FileItem = ({ item }) => {
           if (!data.content || data.content.length === 0) {
             console.warn('Warning: File content is empty!', { fileId: cleanKey, fileName: item.label });
           }
-          
+
+          setActiveFile(null);
+
           setActiveFile({
             name: item.label,
             content: data.content || '',
+            key: cleanKey,
             fileType: item.data.fileType || data.fileType
           });
-          
           console.log('Active file set:', {
             name: item.label,
             contentLength: (data.content || '').length,
@@ -186,6 +205,74 @@ const FileItem = ({ item }) => {
     }
   };
 
+
+  const handleFileDelete = async (e) => {
+
+    e.stopPropagation();
+
+    console.log('File clicked:', {
+      item,
+      key: item.key,
+      userId: user?.id,
+      isDirectory: !!item.children?.length
+    });
+    
+    // console.log(filesRef.current);
+
+    setFiles(removeNodeFromTree(filesRef.current, item.key));
+    
+    // Make sure we have both item.key and user.id
+    if (!item.key || !user?.id) {
+      console.error('Missing required data:', { itemKey: item.key, userId: user?.id });
+      return;
+    }
+
+    const payload = {
+      userId: user?.id,
+    };
+
+    // Remove any quotes or extra spaces from the key
+    const cleanKey = item.key.replace(/['"]/g, '').trim();
+    console.log('Making request to:', `${BACKEND_API_URL}/api/files/${cleanKey}/content?userId=${user.id}`);
+
+    const file_delete_fetch = fetch(
+      `${BACKEND_API_URL}/api/files/${cleanKey}?userId=${user.id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const folder_delete_fetch = fetch(
+      `${BACKEND_API_URL}/api/folder/${cleanKey}?userId=${user.id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const [file_response, folder_response] = await Promise.all([file_delete_fetch, folder_delete_fetch]);
+
+    if (!file_response.ok && !folder_response.ok) {
+      console.warn('delete request failed');
+      return;
+    } else {
+      console.log('delete success');
+    }
+
+  };
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+  
+
   return (
     <HStack
       p={1}
@@ -194,6 +281,7 @@ const FileItem = ({ item }) => {
       _hover={{ bg: THEME_CONFIG.DARK.HOVER }}
       cursor="pointer"
       onClick={handleFileClick}
+      // display={"none"}
     >
       {getNodeIcon(item)}
       <Text fontSize={THEME_CONFIG.FILENAME_FONT_SIZE} fontFamily={THEME_CONFIG.FONT_FAMILY}>
@@ -203,7 +291,8 @@ const FileItem = ({ item }) => {
         size="xs"
         icon={<DeleteIcon />}
         variant="ghost"
-        onClick={(e) => e.stopPropagation()} // Implement delete functionality
+        // onClick={(e) => e.stopPropagation()} // Implement delete functionality
+        onClick={handleFileDelete} // Implement delete functionality
       />
     </HStack>
   );
@@ -245,6 +334,33 @@ export const FileExplorer = () => {
   const toast = useToast();
   const { user , logout} = useKindeAuth();
 
+  // const removeNodeFromTree = (nodes, keyToRemove) => {
+
+  //   console.log(`currently on:`);
+  //   console.log(nodes);
+
+  //   return nodes
+  //     .filter(node => {  
+  //       console.log(`CURRRR on:`);
+  //       console.log(node);
+  //       console.log('COND:')
+  //       console.log(node.label !== keyToRemove)
+  //       console.log(node.label);
+  //       console.log(keyToRemove);
+  //   // removeNodeFromTree(filesWithoutDefault, "load_data.py");
+  //       return node.label !== keyToRemove;
+  //   }) // Remove the node if it matches
+  //     .map(node => {
+  //       if (node.children && node.children.length > 0) {
+  //         return {
+  //           ...node,
+  //           children: removeNodeFromTree(node.children, keyToRemove)
+  //         };
+  //       }
+  //       return node;
+  //     });
+  // };
+
   const fetchAndUpdateFiles = async () => {
     try {
       const response = await fetch(`${BACKEND_API_URL}/api/files?userId=${user?.id}`);
@@ -252,7 +368,25 @@ export const FileExplorer = () => {
         const data = await response.json();
         // Extract the children from the default project
         const filesWithoutDefault = data.files?.[0]?.children || [];
+        // setFiles(filesWithoutDefault.filter(item => item.label != "load_data.py"));
         setFiles(filesWithoutDefault);
+        // console.log(removeNodeFromTree)
+        console.log(`------------------------------------------------------------------------------------------------------------------------------------`);
+        // console.log(removeNodeFromTree(filesWithoutDefault, "load_data.py"));
+        // setFiles(removeNodeFromTree(filesWithoutDefault, "load_data.py"));
+        // setFiles(removeNodeFromTree(filesWithoutDefault, "results"));
+        // setFiles(removeNodeFromTree(filesWithoutDefault, "ialskdjfal;s"));
+
+
+        // setTimeout(() => {
+          // removeNodeFromTree(filesWithoutDefault, "load_data.py");
+          // setFiles(filesWithoutDefault.filter(item => item.label != "CSE_5525_HW3"));
+          // setFiles(filesWithoutDefault);
+        // }, 1000);
+
+
+        // setTimeout(() => {
+        // }, 1000);
       } else {
         console.error("Error fetching files");
       }
@@ -266,6 +400,16 @@ export const FileExplorer = () => {
   useEffect(() => {
     if (user?.id) fetchAndUpdateFiles();
   }, [user?.id]);
+
+  // useEffect(() => {
+  //   // console.log(files);
+  //   filesRef.current = files;
+  // }, [files]);
+
+  // useEffect(() => {
+  //   console.log("THIIIIIIS RUN");
+  //   // setFiles(prevFiles => removeNodeFromTree(prevFiles, "load_data.py"));
+  // }, [files]);
 
   const shouldSkipFile = (file) => {
       // List of binary file extensions to skip
@@ -488,7 +632,7 @@ export const FileExplorer = () => {
           <label htmlFor="file-upload">
             <IconButton size="xs" as="span" icon={<i className="pi pi-file-import" style={{ color: 'white', marginRight: '5px' }} />} _hover={{ cursor: 'pointer' }} />
           </label>
-          <IconButton size="xs" icon={<i className="pi pi-file-plus" style={{ color: 'white', marginRight: '5px' }} />} onClick={() => setIsCreating(true)} />
+          {/* <IconButton size="xs" icon={<i className="pi pi-file-plus" style={{ color: 'white', marginRight: '5px' }} />} onClick={() => setIsCreating(true)} /> */}
         </HStack>
       </HStack>
 
