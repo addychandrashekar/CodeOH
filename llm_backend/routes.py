@@ -25,7 +25,7 @@ async def chat_with_llm(request: dict):
 
         query_embedding = generate_embedding(user_message)
 
-        context = search_code(user_id, query_embedding, 0.65)
+        context = search_code(user_id, query_embedding, 0.5)
 
         llm_response = generate_llm_response(context, user_message)
 
