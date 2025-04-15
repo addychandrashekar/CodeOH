@@ -1,24 +1,233 @@
-This is a FastAPI-based backend service for managing users, projects, and files. The project is connected to a PostgreSQL database and supports CRUD operations.
+# CodeOH - Your AI-Powered Coding Assistant
+
+This is a FastAPI-based backend service and React frontend application for enhancing your coding experience with AI assistance. The system helps with generating code, fixing errors, optimizing solutions, and more.
 
 ## Features
 
-🔹 User Management: Create, retrieve, and delete users with hashed passwords.
+🔹 **AI Code Generation:** Create and modify code with natural language prompts
 
-🔹 Project Management: Associate projects with users and manage them.
+🔹 **Project Management:** Organize and manage your coding projects
 
-🔹 File Upload: Upload files linked to projects.
+🔹 **File Management:** Create, modify, and organize your code files
 
-🔹 Database Connection Check: Verify the connection to the database.
+🔹 **Error Fixing:** Automatic error detection and fixing suggestions
 
-# Endpoints
+🔹 **Test Generation:** Auto-generate test cases for your functions
 
-## Root Endpoint
+🔹 **Code Optimization:** Get suggestions for improving your code performance
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- Python 3.8+ with pip
+- PostgreSQL database
+
+### Installation
+
+1. **Clone the repository**
+
+   ```
+   git clone https://github.com/yourusername/codeoh.git
+   cd codeoh
+   ```
+
+2. **Backend Setup**
+
+   ```bash
+   # Install required Python packages
+   pip install --user fastapi uvicorn sqlalchemy bcrypt psycopg2 pydantic python-multipart
+
+   # Start the FastAPI server
+   cd Backend
+   uvicorn main:app --reload
+   ```
+
+3. **Frontend Setup**
+
+   ```bash
+   # Install dependencies
+   cd Frontend/code_oh
+   npm install
+
+   # Start the development server
+   npm run dev
+   ```
+
+4. **Database Configuration**
+   Ensure your PostgreSQL database is properly configured in `Backend/database.py` before running the server.
+
+5. **Access the Application**
+   Open http://localhost:3000 in your browser to access the CodeOH application.
+
+## AI Assistant Capabilities
+
+CodeOH features a powerful AI assistant that can help with various coding tasks. Here's what you can do:
+
+### Creating Files
+
+Create new code files using natural language:
+
+```
+Create a new file called sentiment_analysis.py that performs sentiment analysis on text
+```
+
+```
+Create a file named data_processor.js that can parse CSV and JSON data
+```
+
+### Modifying Existing Files
+
+Request changes to your existing code:
+
+```
+Add error handling to the process_data function in data_processor.js
+```
+
+```
+Refactor the calculate_statistics function to improve readability
+```
+
+### Test Case Generation
+
+Generate comprehensive test cases for your functions:
+
+```
+Generate tests for the calculate_median function
+```
+
+```
+Create test cases that cover edge cases for the binary_search algorithm
+```
+
+### Error Fixing
+
+Automatically detect and fix errors in your code:
+
+```
+Fix the TypeError in calculate_mean.py
+```
+
+You can also use the "Fix Issue" button that appears when errors are detected in the console output.
+
+### Code Optimization
+
+Get suggestions for improving performance:
+
+```
+Optimize the sorting algorithm in sort.py
+```
+
+```
+Make the database queries more efficient in the user service
+```
+
+### Code Generation
+
+Generate complete code solutions:
+
+```
+Write a function that calculates the Fibonacci sequence iteratively
+```
+
+```
+Create a React component for a responsive navigation bar
+```
+
+### Code Explanation
+
+Get detailed explanations of how code works:
+
+```
+Explain how the quick_sort algorithm works
+```
+
+```
+Describe what this regex pattern does: ^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$
+```
+
+### Searching the Codebase
+
+Find specific code or patterns across your project:
+
+```
+Find all functions that use the database connection
+```
+
+```
+Search for implementations of the Observer pattern in the codebase
+```
+
+### Documentation Generation
+
+Create documentation for your code:
+
+```
+Generate documentation for the UserService class
+```
+
+```
+Create JSDoc comments for the API client functions
+```
+
+### Code Translation
+
+Translate code between different programming languages:
+
+```
+Convert this Python function to JavaScript
+```
+
+```
+Translate this Java class to TypeScript
+```
+
+### Learning Resources
+
+Get explanations and learning materials:
+
+```
+Explain how closures work in JavaScript
+```
+
+```
+Show me an example of using async/await with error handling
+```
+
+### Advanced IDE Features
+
+- **Rate Limiting Management:** The system intelligently manages API requests to prevent rate limiting issues
+- **Response Caching:** Frequently requested operations are cached for improved performance
+- **Fix Application Button:** One-click solution to apply suggested fixes to your code
+- **Smart Code Replacement:** Accurately replaces only the affected functions when applying fixes
+
+## Walkthrough Video
+
+For a comprehensive demonstration of CodeOH's features and capabilities, watch our walkthrough video:
+
+[CodeOH Walkthrough Video](https://www.youtube.com/watch?v=your-video-id)
+
+The video covers:
+
+- Setting up your first project
+- Creating and modifying files
+- Using the AI assistant for code generation
+- Fixing errors and optimizing code
+- Generating test cases
+- Advanced features and tips
+
+## Endpoints
+
+### Backend API
+
+#### Root Endpoint
 
 ```bash
 GET / - Welcome message endpoint
 ```
 
-## User Management
+#### User Management
 
 Regular User Operations
 
@@ -52,7 +261,7 @@ POST /login - Login user (returns JWT token)
 POST /api/auth/user - Handle Kinde authentication
 ```
 
-## Project Management
+#### Project Management
 
 ```bash
 GET /projects - Get all projects
@@ -66,7 +275,7 @@ POST /projects - Create a new project
 DELETE /projects/{project_id} - Delete a project
 ```
 
-## File Management
+#### File Management
 
 File Operations
 
@@ -90,55 +299,37 @@ POST /api/files/upload - Upload files and folders
 POST /files - Upload a single file
 ```
 
-## Database Health Check
+#### Database Health Check
 
 ```bash
 GET /db-check - Check database connection status
 ```
 
-# Setup Instructions
+## Performance Optimizations
 
-1. Run the following command to install required Python packages:
-   pip install --user fastapi uvicorn sqlalchemy bcrypt psycopg2 pydantic
+CodeOH includes several performance optimizations:
 
-Note: Ensure that `pip` is correctly pointing to Python 3 before running the installation command. If unsure, use:
-python3 -m pip install --user fastapi uvicorn sqlalchemy bcrypt psycopg2 pydantic
+- **Response Caching:** Common AI responses are cached to improve response times
+- **Request Deduplication:** Prevents duplicate API calls for the same request
+- **Parallel Processing:** Handles multiple operations concurrently when possible
+- **Optimized File Parsing:** Efficiently processes large codebases
+- **Lazy Loading:** Components and resources are loaded only when needed
 
-2. To run the FastAPI server:
-   uvicorn main:app --reload
+## Contributing
 
-Note: Ensure that `pip` is correctly pointing to Python 3 before running the installation command. If unsure, use:
-python3 -m uvicorn main:app --reload
+We welcome contributions to CodeOH! Please follow these steps:
 
-4. Then, open http://127.0.0.1:8000/docs to test APIs using Swagger UI.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-5. Database Connection
-   Ensure your PostgreSQL database is properly configured in database.py before running the server.
+## License
 
-## API Endpoints
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Here are the available API endpoints:
+## Acknowledgments
 
-![API Endpoints](description.png)
-
-For Delete
-After run the FastAPI, and use 'curl -X 'GET' 'http://127.0.0.1:8000/users' ' to get all user info.
-
-Then use 'curl -X 'DELETE' 'http://127.0.0.1:8000/users/47653704-ac88-4666-b17b-15ac004953a6' '.
-(47653704-ac88-4666-b17b-15ac004953a6) is sample user id.
-
-If delete successful, it return "{"message": "User deleted"}"
-
-## Example demo
-
-Here is the demo of checking users variable in Supabase
-![Example demo](Supabase.png)
-
-Here is the demo of http://127.0.0.1:8000/docs
-![Example demo](docs.png)
-
-Here is the demo of http://127.0.0.1:8000
-![Example demo](8000.png)
-
-Here is the demo of http://127.0.0.1:8000/users
-![Example demo](users.png)
+- Thanks to all contributors who have helped with the development
+- Special thanks to the FastAPI, React, and AI communities for their invaluable resources
