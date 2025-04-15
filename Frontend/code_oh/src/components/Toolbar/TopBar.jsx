@@ -1,5 +1,10 @@
-import { Box, Code, HStack, IconButton, useColorMode, Image, Spacer } from '@chakra-ui/react'
+import { Box, Code, HStack, IconButton, useColorMode, Image, Spacer, Button, useToast } from '@chakra-ui/react'
 import { useEditor } from '../../context/EditorContext'
+import { useFiles } from '../../context/FileContext'
+import { BACKEND_API_URL } from '../../services/BackendServices'
+import { useState } from 'react'
+import axios from 'axios'
+import { useKindeAuth } from "@kinde-oss/kinde-auth-react"
 
 
 /**
@@ -17,6 +22,187 @@ export const TopBar = ({ toggleLLM, isLLMOpen }) => {
     // Theme and editor context hooks
     const { colorMode } = useColorMode()
     const { runCode, isLoading } = useEditor()
+    const { activeFile, setActiveFile } = useFiles()
+    const [isGeneratingTests, setIsGeneratingTests] = useState(false)
+    const toast = useToast()
+    const { user } = useKindeAuth()
+    
+    // Function to generate test cases for the active file
+    const generateTestCases = async () => {
+        if (!activeFile || !user?.id) return
+        
+        try {
+            setIsGeneratingTests(true)
+            
+            // Prepare the prompt for generating test cases
+            const fileType = activeFile.fileType || 'py';
+            let testHeader = '# Test Cases';
+            
+            // Determine appropriate test header based on file type
+            if (fileType === 'js' || fileType === 'jsx' || fileType === 'ts' || fileType === 'tsx') {
+                testHeader = '// Test Cases';
+            } else if (fileType === 'java' || fileType === 'c' || fileType === 'cpp') {
+                testHeader = '// Test Cases';
+            }
+            
+            const prompt = `
+Generate simple test cases for the following ${fileType} file:
+\`\`\`
+${activeFile.content}
+\`\`\`
+
+Important: DO NOT use any testing libraries or frameworks. Instead:
+1. Create simple test functions that directly call the original functions with sample inputs
+2. Compare the actual output with expected output using simple equality checks
+3. Print or log success/failure messages for EACH test
+4. Add a main function that runs all tests
+
+For example, in Python:
+\`\`\`python
+# Simple test for add function
+def test_add():
+    print("Testing add function...")
+    
+    # Test case 1
+    result = add(2, 3)
+    expected = 5
+    print(f"Test add(2, 3): {'PASS' if result == expected else 'FAIL'}, Got: {result}, Expected: {expected}")
+    
+    # Test case 2
+    result = add(-1, 1)
+    expected = 0
+    print(f"Test add(-1, 1): {'PASS' if result == expected else 'FAIL'}, Got: {result}, Expected: {expected}")
+
+# Run all tests
+def run_tests():
+    print("======= RUNNING TESTS =======")
+    test_add()
+    print("======= TESTS COMPLETE =======")
+
+# Execute tests when this file runs
+if __name__ == "__main__" or True:  # The 'or True' ensures tests run when code is executed
+    run_tests()
+\`\`\`
+
+For JavaScript, use console.log() for output.
+For other languages, use appropriate print/output functions.
+
+Include multiple test cases for each function with different inputs, including edge cases.
+Ensure tests will print their result when file is executed.
+Return only the test code without explanations outside the code.
+`;
+            
+            // Call the backend API to generate test cases
+            const response = await axios.post(`${BACKEND_API_URL}/chat`, {
+                user_message: prompt,
+                user_id: user.id
+            });
+            
+            const generatedTests = response.data.response.text || response.data.response;
+            
+            // Extract code from markdown if necessary
+            let testCode = generatedTests;
+            const codeBlockMatch = generatedTests.match(/```(?:\w+)?\n([\s\S]+?)\n```/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
+                testCode = codeBlockMatch[1];
+            }
+            
+            // Check if the generated test code includes a main function or run_tests function
+            const hasMainFunction = testCode.includes('if __name__ == "__main__"') || 
+                                   testCode.includes("if __name__ == '__main__'") ||
+                                   testCode.includes('function main()') ||
+                                   testCode.includes('def run_tests()');
+                                   
+            // Extract test function names using regex
+            const testFunctionRegex = /def\s+(test_\w+)\s*\(/g;
+            const testFunctions = [];
+            let match;
+            while ((match = testFunctionRegex.exec(testCode)) !== null) {
+                testFunctions.push(match[1]);
+            }
+            
+            // If no main function and we have test functions, append one
+            if (!hasMainFunction && testFunctions.length > 0) {
+                if (fileType === 'py') {
+                    testCode += `\n\n# Run all tests
+def run_tests():
+    print("======= RUNNING TESTS =======")
+${testFunctions.map(func => `    ${func}()`).join('\n')}
+    print("======= TESTS COMPLETE =======")
+
+# Execute tests when this file runs
+if __name__ == "__main__" or True:  # The 'or True' ensures tests run when code is executed
+    run_tests()
+`;
+                } else if (fileType === 'js' || fileType === 'jsx' || fileType === 'ts' || fileType === 'tsx') {
+                    testCode += `\n\n// Run all tests
+function runAllTests() {
+    console.log("======= RUNNING TESTS =======");
+${testFunctions.map(func => `    ${func}();`).join('\n')}
+    console.log("======= TESTS COMPLETE =======");
+}
+
+// Execute tests
+runAllTests();
+`;
+                } else if (fileType === 'java') {
+                    testCode += `\n\n// Main method to run all tests
+public static void main(String[] args) {
+    System.out.println("======= RUNNING TESTS =======");
+${testFunctions.map(func => `    ${func}();`).join('\n')}
+    System.out.println("======= TESTS COMPLETE =======");
+}
+`;
+                }
+            }
+            
+            // Append the test code to the existing file content with appropriate header
+            const updatedContent = `${activeFile.content}\n\n${testHeader}\n${testCode}`;
+            
+            // Update the file in the backend
+            const updateResponse = await fetch(
+                `${BACKEND_API_URL}/api/files/${activeFile.key}/content?userId=${user.id}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: updatedContent
+                    }),
+                }
+            )
+            
+            if (updateResponse.ok) {
+                // Update the active file in the state
+                setActiveFile({
+                    ...activeFile,
+                    content: updatedContent
+                })
+                
+                toast({
+                    title: "Test cases generated",
+                    description: "Test cases have been added to the file",
+                    status: "success",
+                    duration: 5000,
+                    isClosable: true,
+                })
+            } else {
+                throw new Error("Failed to update the file")
+            }
+        } catch (error) {
+            console.error("Error generating test cases:", error)
+            toast({
+                title: "Error",
+                description: "Failed to generate test cases",
+                status: "error",
+                duration: 5000,
+                isClosable: true,
+            })
+        } finally {
+            setIsGeneratingTests(false)
+        }
+    }
     
     return (
         <Box 
@@ -31,6 +217,20 @@ export const TopBar = ({ toggleLLM, isLLMOpen }) => {
                 {/* Application title */}
                 <Code fontSize="md">Code-OH</Code>
                 <Spacer />
+
+                {/* Test Case button - only visible when a file is open */}
+                {activeFile && (
+                    <Button
+                        size="xs"
+                        colorScheme="teal"
+                        onClick={generateTestCases}
+                        isLoading={isGeneratingTests}
+                        loadingText="Generating..."
+                        mr={2}
+                    >
+                        Test Case
+                    </Button>
+                )}
 
                 {/* Code execution button */}
                 <IconButton

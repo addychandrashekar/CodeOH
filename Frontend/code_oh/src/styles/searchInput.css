@@ -229,7 +229,147 @@
   user-select: none;
 }
 
-.markdown-block p,
+.markdown-block {
+  color: inherit;
+  line-height: 1.6;
+}
+
+.markdown-block p {
+  margin-bottom: 1rem;
+}
+
 .markdown-block pre {
-  margin-bottom: 1rem; /* adds visual spacing */
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  position: relative;
+}
+
+.markdown-block h1,
+.markdown-block h2,
+.markdown-block h3,
+.markdown-block h4 {
+  margin: 1.5rem 0 1rem;
+  font-weight: 600;
+}
+
+.markdown-block h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-block h2 {
+  font-size: 1.3rem;
+}
+
+.markdown-block h3 {
+  font-size: 1.1rem;
+}
+
+.markdown-block ul,
+.markdown-block ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-block li {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-block a {
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.markdown-block a:hover {
+  text-decoration: underline;
+}
+
+.markdown-block blockquote {
+  border-left: 4px solid #718096;
+  padding-left: 1rem;
+  color: #718096;
+  margin: 1rem 0;
+}
+
+.markdown-block table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.markdown-block th,
+.markdown-block td {
+  padding: 0.5rem;
+  border: 1px solid #718096;
+}
+
+.markdown-block th {
+  background-color: rgba(113, 128, 150, 0.2);
+}
+
+.markdown-block code {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.9rem;
+}
+
+.markdown-block pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.markdown-block pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-block pre::-webkit-scrollbar-thumb {
+  background: rgba(113, 128, 150, 0.5);
+  border-radius: 4px;
+}
+
+.markdown-block pre::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 128, 150, 0.7);
+}
+
+.markdown-block pre {
+  overflow: auto;
+}
+
+.markdown-block strong {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.chat-container {
+  scrollbar-width: thin;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.empty-state svg {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-animation {
+  animation: fadeIn 0.3s ease-out forwards;
 }

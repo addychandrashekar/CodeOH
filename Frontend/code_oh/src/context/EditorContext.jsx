@@ -387,7 +387,14 @@ export const EditorProvider = ({ children }) => {
                 // Add execution result to console history
                 if (result.run.output) {
                     setConsoleHistory(prev => [...prev, { type: 'output', content: result.run.output }])
+                } else if (!result.run.stderr) {
+                    // If there's no output but also no errors, show a message
+                    setConsoleHistory(prev => [...prev, { 
+                        type: 'output', 
+                        content: 'Code executed successfully, but no output was generated.\nTry adding print statements to your code to see results.' 
+                    }])
                 }
+                
                 if (result.run.stderr) {
                     setConsoleHistory(prev => [...prev, { type: 'error', content: result.run.stderr }])
                 }
@@ -395,7 +402,9 @@ export const EditorProvider = ({ children }) => {
                 if (!result.run.stderr) {
                     toast({
                         title: 'Success',
-                        description: 'Code executed successfully',
+                        description: result.run.output 
+                            ? 'Code executed successfully' 
+                            : 'Code executed successfully, but no output was generated',
                         status: 'success',
                         duration: 3000,
                         isClosable: true
