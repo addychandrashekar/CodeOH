@@ -206,7 +206,22 @@ Show me an example of using async/await with error handling
 
 For a comprehensive demonstration of CodeOH's features and capabilities, watch our walkthrough video:
 
-[CodeOH Walkthrough Video](https://www.youtube.com/watch?v=your-video-id)
+### Screen Recording
+
+https://github.com/user/CodeOH/assets/12345678/abcdef12-3456-7890-abcd-ef1234567890
+
+_Note: To add your own screen recording:_
+
+1. Create an issue in your repository
+2. Drag and drop your video file into the issue description
+3. Copy the generated URL (in format like the placeholder above)
+4. Paste the URL here in the README.md
+5. Delete these instructions
+
+Alternatively, you can:
+
+- Upload your video to YouTube and link it: `[![CodeOH Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)`
+- Host the video file in your repository's assets folder and link directly
 
 The video covers:
 
