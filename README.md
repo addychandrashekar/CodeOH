@@ -332,4 +332,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Thanks to all contributors who have helped with the development
-- Special thanks to the FastAPI, React, and AI communities for their invaluable resources
+- Special thanks to the FastAPI, React, and Google's Gemini communities for their invaluable resources
