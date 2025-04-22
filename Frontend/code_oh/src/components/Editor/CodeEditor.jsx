@@ -68,7 +68,6 @@ export const CodeEditor = () => {
         };
                 
         // Remove any quotes or extra spaces from the key
-        //  const cleanKey = activeFile. .key.replace(/['"]/g, '').trim();
          console.log('Making request to:', `${BACKEND_API_URL}/api/files/${docState.key}/content?userId=${user.id}`);
     
          const response = await fetch(
@@ -149,8 +148,8 @@ export const CodeEditor = () => {
                     // Enable advanced editor features
                     bracketPairColorization: { enabled: true }, // Enable bracket pair colorization
                     guides: {
-                        bracketPairs: true,    // Show bracket pair guides
-                        indentation: true      // Show indentation guides
+                        bracketPairs: true,
+                        indentation: true      
                     }
                 }}
             />

@@ -1,5 +1,3 @@
-
-// TODO: Add updated versions for all languages base on piston api
 // Fetch all the versions from the piston api using : https://emkc.org/api/v2/piston/runtimes
 export const LANGUAGE_VERSIONS = {
     python: '3.10.0',

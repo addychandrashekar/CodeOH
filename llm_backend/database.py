@@ -7,8 +7,6 @@ load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_API_KEY = os.getenv("SUPABASE_API_KEY")
-
-# Initialize Supabase client
 supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_API_KEY)
 
 def store_embedding_in_supabase(user_id, file_name, code, embedding):

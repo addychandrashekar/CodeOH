@@ -26,12 +26,11 @@ from llm_backend.database import store_embedding_in_supabase
 
 app = FastAPI()
 
-# Create database tables
+# create database table
 Base.metadata.create_all(bind=engine)
 
 FRONTEND_URL = "http://localhost:5173"
 
-# include all of the routers created so it routes correctly
 app.include_router(llm_router)
 
 
@@ -39,8 +38,6 @@ app.include_router(llm_router)
 def read_root():
     return {"message": "Welcome to the CodeOH FastAPI server!"}
 
-
-# Dependency to get DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -48,11 +45,9 @@ def get_db():
     finally:
         db.close()
 
-
-# Add this after creating the FastAPI app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],  # frontend URL
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,7 +69,7 @@ class UserIdRequest(BaseModel):
     userId: str
 
 
-# User API
+# user API here
 class UserCreate(BaseModel):
     username: str
     email: str

@@ -18,9 +18,6 @@ import 'primeicons/primeicons.css';
 
 /**
  * Main application component that provides the layout and structure for the code editor.
- * Features a resizable panel layout with file explorer, code editor, console output,
- * and optional AI assistant panel. Includes a loading screen on initial render.
- * 
  * @component
  * @returns {JSX.Element} The main application interface
  */
@@ -69,7 +66,7 @@ function App() {
 
   /**
    * Vertical resize handle component for panel resizing
-   * @returns {JSX.Element} A vertical resize handle with theme-aware styling
+   * @returns {JSX.Element}
    */
   const ResizeHandle = () => (
     <PanelResizeHandle
@@ -83,7 +80,7 @@ function App() {
 
   /**
    * Horizontal resize handle component for panel resizing
-   * @returns {JSX.Element} A horizontal resize handle with theme-aware styling
+   * @returns {JSX.Element}
    */
   const HorizontalResizeHandle = () => (
     <PanelResizeHandle
@@ -95,7 +92,7 @@ function App() {
     />
   )
 
-  // Show loader while loading
+  // It show loader while loading
   if (isLoadingContent) {
     return (
       <Box 

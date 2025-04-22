@@ -3,24 +3,16 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
-
-# Get DATABASE_URL from environment variables
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Create engine without specific database
 engine = create_engine(DATABASE_URL)
 
 
 # Drop all tables
 def drop_tables():
     try:
-        # Create a new session
         Session = sessionmaker(bind=engine)
         session = Session()
-
-        # Drop all tables using raw SQL
         session.execute(
             text(
                 """

@@ -6,18 +6,14 @@ import axios from 'axios'
 import { BACKEND_API_URL } from '../../services/BackendServices'
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react"
 
-// Add a simple cache for API responses
 const responseCache = new Map();
 const MAX_CACHE_SIZE = 50;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 /**
  * ConsoleOutput component that provides a terminal-like interface for command input and output display.
- * Supports different types of entries (input, error, output) with appropriate styling.
- * Integrates with the EditorContext for command handling and history management.
- * 
  * @component
- * @returns {JSX.Element} A console interface with command history and input field
+ * @returns {JSX.Element} 
  */
 export const ConsoleOutput = () => {
     // Theme and editor context hooks
@@ -32,13 +28,10 @@ export const ConsoleOutput = () => {
     const inputRef = useRef(null)
     const toast = useToast()
     
-    // Track pending requests to avoid duplicates
     const pendingRequests = useRef(new Map());
     
-    // Check if there's an error in the console history
     const hasError = consoleHistory.some(entry => entry.type === 'error')
     
-    // Get the latest error message if available
     const latestError = hasError 
         ? consoleHistory.filter(entry => entry.type === 'error').pop()
         : null
@@ -54,12 +47,10 @@ export const ConsoleOutput = () => {
         const { skipCache = false, cacheKey = null } = options;
         const effectiveCacheKey = cacheKey || `${endpoint}:${JSON.stringify(data)}`;
         
-        // Check for existing pending request
         if (pendingRequests.current.has(effectiveCacheKey)) {
             return pendingRequests.current.get(effectiveCacheKey);
         }
         
-        // Check cache if not skipping
         if (!skipCache && responseCache.has(effectiveCacheKey)) {
             const cachedData = responseCache.get(effectiveCacheKey);
             if (Date.now() - cachedData.timestamp < CACHE_TTL) {
@@ -74,11 +65,8 @@ export const ConsoleOutput = () => {
         // Create a new request
         const requestPromise = axios.post(`${BACKEND_API_URL}${endpoint}`, data)
             .then(response => {
-                // Cache the response
                 if (!skipCache) {
-                    // Manage cache size
                     if (responseCache.size >= MAX_CACHE_SIZE) {
-                        // Remove oldest entry
                         const oldestKey = Array.from(responseCache.keys())[0];
                         responseCache.delete(oldestKey);
                     }
@@ -132,7 +120,7 @@ export const ConsoleOutput = () => {
 
     /**
      * Analyzes an error message and suggests a fix
-     * @param {string} errorMessage - The error message to analyze
+     * @param {string} errorMessage
      */
     const handleFixIssue = async () => {
         if (!latestError || !activeFile) return
@@ -140,13 +128,8 @@ export const ConsoleOutput = () => {
         setIsFixingIssue(true)
         
         try {
-            // Extract filename and line number from error message
             const errorContent = latestError.content
-            
-            // Get the user ID for backend calls
             const userId = user?.id
-            
-            // Check if user ID is available
             if (!userId) {
                 toast({
                     title: "Authentication Error",
@@ -158,8 +141,6 @@ export const ConsoleOutput = () => {
                 setIsFixingIssue(false);
                 return;
             }
-            
-            // Create a prompt to analyze the error and suggest a fix
             const prompt = `
 I have the following error in my code:
 \`\`\`
@@ -174,10 +155,8 @@ ${activeFile.content}
 Please analyze the error and suggest a fix. Only provide the corrected code for the function that has the error. Don't modify unrelated functions. Make sure the fix is minimal and focused on addressing the specific error.
 `;
 
-            // Create a cache key based on the code and error
             const cacheKey = `fix:${activeFile.key}:${errorContent.substring(0, 100)}`;
 
-            // Call the backend to get an AI-suggested fix using the optimized API call
             const response = await optimizedApiCall('/chat', {
                 user_message: prompt,
                 user_id: userId
@@ -185,34 +164,26 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
             
             const suggestedFix = response.response.text || response.response;
             
-            // Extract code from markdown if necessary
             let fixedCode = suggestedFix;
             const codeBlockMatch = suggestedFix.match(/```(?:\w+)?\n([\s\S]+?)\n```/);
             if (codeBlockMatch && codeBlockMatch[1]) {
                 fixedCode = codeBlockMatch[1];
             }
             
-            // Log the extracted code for debugging
             console.log("AI Response:", {
                 original: suggestedFix.substring(0, 100) + "...",
                 extracted: fixedCode.substring(0, 100) + "..."
             });
             
-            // Identify the function to fix
-            // This is a simple implementation - we'll try to find the function name from the error
             const functionNameMatch = errorContent.match(/in ([a-zA-Z0-9_]+)/);
             let functionName = functionNameMatch ? functionNameMatch[1] : null;
             
             if (functionName) {
-                // Find the function in the current code
                 const functionRegex = new RegExp(`def\\s+${functionName}\\s*\\([^)]*\\):[\\s\\S]*?(?=\\n\\s*def|\\n\\s*class|\\n\\s*#|\\n\\s*$)`, 'g');
                 const matches = activeFile.content.match(functionRegex);
                 
                 if (matches && matches.length > 0) {
-                    // Replace the function with the fixed version
                     let updatedContent = activeFile.content;
-                    
-                    // Try multiple patterns to extract the fixed function
                     let fixedFunctionMatch = null;
                     
                     // Pattern 1: Try to extract the full function definition up to the next function/class
@@ -235,7 +206,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                     }
                     
                     if (fixedFunctionMatch && fixedFunctionMatch.length > 0) {
-                        // Only replace the specific function, keeping the rest of the file intact
                         updatedContent = activeFile.content.replace(matches[0], fixedFunctionMatch[0]);
                         
                         console.log("Function replacement:", {
@@ -248,8 +218,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                         // Verify that we didn't delete content
                         if (updatedContent.length < activeFile.content.length * 0.8) {
                             console.warn("New content is significantly shorter than original, using fallback approach");
-                            
-                            // Fallback to a more conservative approach - append the fixed function
                             const originalFuncName = new RegExp(`def\\s+${functionName}\\s*\\(`);
                             
                             if (!originalFuncName.test(fixedFunctionMatch[0])) {
@@ -263,12 +231,10 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                             updatedContent = commentedOriginal + "\n\n# Fixed function\n" + fixedFunctionMatch[0];
                         }
                     } else {
-                        // If we still couldn't extract the function, try one more fallback approach
                         console.warn("Couldn't extract function using regex patterns, using fallback approach");
                         
                         // Check if the AI response contains the function name anywhere
                         if (fixedCode.includes(`def ${functionName}`) || fixedCode.includes(`def\t${functionName}`)) {
-                            // Use the whole fixedCode but add a warning comment
                             toast({
                                 title: "Limited fix available",
                                 description: "Could not extract precise function. Using entire AI response as fallback.",
@@ -276,11 +242,7 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                                 duration: 5000,
                                 isClosable: true,
                             });
-                            
-                            // Append the fixed code with a warning comment
                             const updatedContent = activeFile.content + '\n\n# WARNING: AI-suggested fix (may need manual editing)\n' + fixedCode;
-                            
-                            // Update the file with the fixed content
                             const updateResponse = await fetch(
                                 `${BACKEND_API_URL}/api/files/${activeFile.key}/content?userId=${userId}`,
                                 {
@@ -320,15 +282,12 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                                 throw new Error(`Failed to update the file: ${updateResponse.status} ${updateResponse.statusText}`);
                             }
                         } else {
-                            // Add the response to the console instead
                             handleConsoleInput("# AI suggested fix (not applied automatically):");
                             handleConsoleInput(fixedCode);
                             throw new Error("Couldn't extract the fixed function from the AI response");
                         }
                     }
                 } else {
-                    // If we couldn't locate the specific function, try a more cautious approach
-                    // Look for any function that might be related to the error
                     toast({
                         title: "Limited fix applied",
                         description: "Couldn't precisely locate the function. Adding the fixed function at the end of the file.",
@@ -337,7 +296,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                         isClosable: true,
                     });
                     
-                    // Extract the entire function from the AI-suggested fix
                     const fixedFunctionMatch = fixedCode.match(/def\s+([a-zA-Z0-9_]+)\s*\([^)]*\):[\s\S]+/);
                     
                     if (fixedFunctionMatch) {
@@ -373,7 +331,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                                 isClosable: true,
                             });
                         } else {
-                            // Try to get the error details from the response
                             const errorText = await updateResponse.text().catch(() => null);
                             console.error("Error updating file:", {
                                 status: updateResponse.status, 
@@ -387,7 +344,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                     }
                 }
             } else {
-                // If we couldn't identify the specific function from the error
                 toast({
                     title: "Generic fix",
                     description: "Couldn't identify specific function from the error. Attempting a general fix.",
@@ -396,17 +352,14 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                     isClosable: true,
                 });
                 
-                // Try to extract a function from the AI response
                 const fixedFunctionMatch = fixedCode.match(/def\s+([a-zA-Z0-9_]+)\s*\([^)]*\):[\s\S]+/);
                 
                 if (fixedFunctionMatch) {
-                    // We found a function in the AI response, append it to the file
                     const functionName = fixedFunctionMatch[1];
                     const existingFunctionRegex = new RegExp(`def\\s+${functionName}\\s*\\([^)]*\\):`, 'g');
                     
                     // Check if this function already exists in the file
                     if (existingFunctionRegex.test(activeFile.content)) {
-                        // Try to replace the existing function
                         const fullFunctionRegex = new RegExp(`def\\s+${functionName}\\s*\\([^)]*\\):[\\s\\S]*?(?=\\n\\s*def|\\n\\s*class|\\n\\s*#|\\n\\s*$)`, 'g');
                         const matches = activeFile.content.match(fullFunctionRegex);
                         
@@ -447,7 +400,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                         }
                     }
                     
-                    // If we couldn't replace, append the function
                     const updatedContent = activeFile.content + '\n\n# Fixed function added by AI\n' + fixedFunctionMatch[0];
                     
                     // Update the file with the fixed content
@@ -479,7 +431,7 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                             isClosable: true,
                         });
                     } else {
-                        // Try to get the error details from the response
+                        // get the error details from the response
                         const errorText = await updateResponse.text().catch(() => null);
                         console.error("Error updating file:", {
                             status: updateResponse.status, 
@@ -489,8 +441,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                         throw new Error(`Failed to update the file: ${updateResponse.status} ${updateResponse.statusText}`);
                     }
                 } else {
-                    // We couldn't find a function in the AI response
-                    // As a last resort, suggest the fix but don't apply it
                     toast({
                         title: "Fix suggestion",
                         description: "Couldn't identify a function to fix. Here's the suggested fix in the console.",
@@ -498,8 +448,6 @@ Please analyze the error and suggest a fix. Only provide the corrected code for 
                         duration: 5000,
                         isClosable: true,
                     });
-                    
-                    // Add the suggested fix to the console
                     handleConsoleInput("# Suggested fix from AI (not applied to file):");
                     handleConsoleInput(fixedCode);
                 }

@@ -20,9 +20,7 @@ import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 const handleSignOut = () => {
   logout(); // trigger the Kinde sign-out process
 };
-/**
- * Generates icons for folders and files
- */
+// Generates icons for folders and files
 const getNodeIcon = (node) => {
   if (node.children?.length > 0) {
     return <i className="pi pi-folder-open" style={{ color: 'orange', marginRight: '5px' }} />;
@@ -35,9 +33,7 @@ const getNodeIcon = (node) => {
   );
 };
 
-/**
- * Processes uploaded files & folders into a tree structure
- */
+// Processes uploaded files & folders into a tree structure
 const buildFolderTree = (fileList) => {
   const root = [];
 
@@ -217,7 +213,6 @@ const FileItem = ({ item }) => {
       isDirectory: !!item.children?.length
     });
     
-    // console.log(filesRef.current);
 
     setFiles(removeNodeFromTree(filesRef.current, item.key));
     

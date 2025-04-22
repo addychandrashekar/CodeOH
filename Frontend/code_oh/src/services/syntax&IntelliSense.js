@@ -3,7 +3,6 @@ import { languages } from 'monaco-editor'
 
 
 export const configureEditor = (editor, monaco, language) => {
-    // Basic editor configurations for all languages
     editor.updateOptions({
         minimap: { enabled: true },
         fontSize: 14,
@@ -23,7 +22,6 @@ export const configureEditor = (editor, monaco, language) => {
         }
     })
 
-    // Configure language-specific settings
     switch (language) {
         case 'javascript':
         case 'typescript':
@@ -131,7 +129,6 @@ const configureJava = (monaco) => {
 }
 
 const configureDart = (monaco) => {
-    // Basic snippet completions for Dart
     monaco.languages.registerCompletionItemProvider('dart', {
         provideCompletionItems: () => ({
             suggestions: [
@@ -163,7 +160,7 @@ const configureDart = (monaco) => {
 }
 
 const configurePhp = (monaco) => {
-    // Basic snippet completions for PHP
+    //PHP
     monaco.languages.registerCompletionItemProvider('php', {
         provideCompletionItems: () => ({
             suggestions: [
@@ -191,7 +188,7 @@ const configurePhp = (monaco) => {
 }
 
 const configureC = (monaco) => {
-    // Basic snippet completions for C
+    //C
     monaco.languages.registerCompletionItemProvider('c', {
         provideCompletionItems: () => ({
             suggestions: [
@@ -215,7 +212,7 @@ const configureC = (monaco) => {
 }
 
 const configureCpp = (monaco) => {
-    // Basic snippet completions for C++
+    //C++
     monaco.languages.registerCompletionItemProvider('cpp', {
         provideCompletionItems: () => ({
             suggestions: [
@@ -239,7 +236,7 @@ const configureCpp = (monaco) => {
     })
 }
 const configureCsharp = (monaco) => {
-    // Basic snippet completions for C#
+    //C#
     monaco.languages.registerCompletionItemProvider('csharp', {
         provideCompletionItems: () => ({
             suggestions: [

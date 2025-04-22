@@ -36,22 +36,16 @@ async def chat_with_llm(request: dict):
 
 @llm_router.post("/addToDB")
 async def add_to_db(request: dict):
-    """
-    Takes in file_name and code_snippet, generates an embedding, and adds it to the database.
-    """
     try:
         file_name = request.get("file_name")
         code_snippet = request.get("code_snippet")
         user_id = request.get("user_id")
 
-        #make sure both file name and code is provided
         if not file_name or not code_snippet:
             return {"error": "file_name and code_snippet are required"}
 
-        #generate the embedding for the code snippet
         embedding = generate_embedding(code_snippet)
 
-        #store the data in Supabase
         store_embedding_in_supabase(user_id, file_name, code_snippet, embedding)
 
         return {"message": "Code snippet added successfully", "file_name": file_name}

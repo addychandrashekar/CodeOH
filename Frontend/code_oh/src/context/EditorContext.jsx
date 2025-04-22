@@ -26,15 +26,12 @@ export const useEditor = () => {
 
 
 /**
- * Provider component for editor functionality
  * Manages editor state, file operations, and code execution
- * 
  * @component
  * @param {Object} props - Component props
  * @param {React.ReactNode} props.children - Child components
  */
 export const EditorProvider = ({ children }) => {
-    // Editor state management
     const [editorRef, setEditorRef] = useState(null)
     const [language, setLanguage] = useState('javascript')
     const [output, setOutput] = useState('')
@@ -49,8 +46,8 @@ export const EditorProvider = ({ children }) => {
     const [currentPath, setCurrentPath] = useState([])
     /**
      * Gets files in the current directory path
-     * @param {string[]} path - Array of directory names
-     * @returns {Array} Array of file objects in the current directory
+     * @param {string[]} path
+     * @returns {Array}
      */
     const getCurrentDirectoryFiles = (path) => {
         if (!files) return []
@@ -67,9 +64,9 @@ export const EditorProvider = ({ children }) => {
 
     /**
      * Finds a file in the current directory path
-     * @param {string[]} path - Array of directory names
-     * @param {string} target - Target file name
-     * @returns {Object|undefined} File object if found
+     * @param {string[]} path
+     * @param {string} target
+     * @returns {Object|undefined}
      */
     const findFileInPath = (path, target) => {
         const current = getCurrentDirectoryFiles(path)
@@ -78,8 +75,8 @@ export const EditorProvider = ({ children }) => {
 
     /**
      * Adds a file to the specified path
-     * @param {string[]} path - Array of directory names
-     * @param {Object} newFile - File object to add
+     * @param {string[]} path
+     * @param {Object} newFile
      */
     const addFileToPath = (path, newFile) => {
         if (path.length === 0) {
@@ -103,8 +100,8 @@ export const EditorProvider = ({ children }) => {
 
     /**
      * Removes a file from the specified path
-     * @param {string[]} path - Array of directory names
-     * @param {string} target - Target file name to remove
+     * @param {string[]} path
+     * @param {string} target
      */
     const removeFileFromPath = (path, target) => {
         setFiles(prev => {
@@ -127,7 +124,7 @@ export const EditorProvider = ({ children }) => {
 
     /**
      * Handles console input commands
-     * @param {string} input - Console input string
+     * @param {string} input
      */
     const handleConsoleInput = async (input) => {
         try {
@@ -333,10 +330,7 @@ export const EditorProvider = ({ children }) => {
             // Add command to history
             setConsoleHistory(prev => [...prev, { type: 'input', content: input }])
 
-            // Parse command and arguments
             const [cmd, ...args] = input.trim().split(' ')
-            
-            // Check if it's a shell command
             if (shellCommands[cmd]) {
                 await shellCommands[cmd](...args)
                 return

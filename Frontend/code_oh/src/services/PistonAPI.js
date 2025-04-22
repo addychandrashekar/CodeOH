@@ -1,5 +1,3 @@
-
-
 //  For connecting to the Piston API
 // baseURL: 'https://emkc.org/api/v2/piston'
     
@@ -72,21 +70,6 @@ if os.path.exists(site_packages):
         }
 
         console.log('Executing code with version:', versions[language]);
-        // const response = await API.post('/execute', {
-        //     language: language,
-        //     version: versions[language],
-        //     files: [{
-        //         name: `code.${language}`,
-        //         content: sourceCode
-        //     }],
-        //     stdin: "",
-        //     args: [],
-        //     compile_timeout: 10000,
-        //     run_timeout: 3000,
-        //     env: {
-        //         "PYTHONPATH": `/piston/packages/python/${versions.python}/lib/python3.9/site-packages`
-        //     }
-        // });
         const response = await API.post('/execute', {
             language: language,
             version: versions[language],

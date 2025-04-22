@@ -30,8 +30,6 @@ class Project(Base):
     name = Column(String(100), nullable=False)
     description = Column(String, nullable=True)
     created_at = Column(TIMESTAMP, default="now()")
-
-    # Relationships
     user = relationship("User", back_populates="projects")
     folders = relationship(
         "Folder", back_populates="project", cascade="all, delete-orphan"
@@ -49,8 +47,6 @@ class File(Base):
     filename = Column(String)
     file_type = Column(String)
     content = Column(Text, default="")
-
-    # Relationships
     project = relationship("Project", back_populates="files")
     folder = relationship("Folder", back_populates="files")
 
@@ -64,8 +60,6 @@ class Folder(Base):
         UUID(as_uuid=True), ForeignKey("folders.id"), nullable=True
     )
     name = Column(String)
-
-    # Relationships
     project = relationship("Project", back_populates="folders")
     parent_folder = relationship("Folder", remote_side=[id], backref="subfolders")
     files = relationship("File", back_populates="folder", cascade="all, delete-orphan")
